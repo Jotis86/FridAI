@@ -1,10 +1,10 @@
 # FridAI 🤖
 
+![FridAI Banner](images/portada.png)
+
 ## 🛠️ No-Code Predictive Modeling Tool  
 
 FridAI is an interactive web app that democratizes machine learning by allowing anyone to build, train, and deploy predictive models **without writing a single line of code**. From data exploration to model deployment, FridAI handles the entire machine learning workflow through an intuitive, visual interface that makes AI accessible to all.
-
-![FridAI Banner](images/portada.png)
 
 ## 🔍 Key Features  
 
@@ -64,14 +64,6 @@ FridAI is an interactive web app that democratizes machine learning by allowing 
 - Python 3.8+ environment
 - Required packages listed in `requirements.txt`
 - Git (optional, for version control)
-
-### Cloud Deployment ☁️
-Deploy FridAI directly on Streamlit Cloud:
-
-1. Fork this repository to your GitHub account
-2. Visit [Streamlit Cloud](https://share.streamlit.io/) and connect your account
-3. Select the FridAI repository and configure with `src/main.py` as the entry point
-4. Deploy and start using your cloud-hosted FridAI instance immediately!
 
 ## 📊 Screenshots
 
