@@ -117,7 +117,7 @@ page = st.sidebar.radio("", ["Upload Data", "Explore Data", "Train Model", "Down
 # Botón de GitHub estilizado en verde
 st.sidebar.markdown("""
 <a href='https://github.com/Jotis86/FridAI' target='_blank'>
-    <button style='background-color: #C19A6B; border: none; color: white; padding: 10px 24px; 
+    <button style='background-color: #D2B48C; border: none; color: white; padding: 10px 24px; 
     text-align: center; text-decoration: none; display: inline-block; font-size: 16px; 
     margin: 4px 2px; cursor: pointer; border-radius: 8px; width: 100%;'>
         <svg style="vertical-align: middle; margin-right: 10px;" height="20" width="20" viewBox="0 0 16 16" fill="white">
