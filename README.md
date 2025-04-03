@@ -137,7 +137,7 @@ The application follows a modular architecture with:
 
 ## 📄 License  
 
-This project is licensed under the **MIT License** – See LICENSE file for details.  
+See the [LICENSE](LICENSE) file for the full license text. 
 
 ## 👤 Author  
 
