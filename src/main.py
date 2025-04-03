@@ -177,17 +177,159 @@ if page == "Upload Data":
             st.subheader("Data Preview")
             st.dataframe(data.head())
             
+            # Create a more visual data information display
             st.subheader("Data Information")
-            buffer = io.StringIO()
-            data.info(buf=buffer)
-            st.text(buffer.getvalue())
+            
+            # Create a DataFrame with column information
+            info_df = pd.DataFrame({
+                'Column': data.columns,
+                'Type': data.dtypes.astype(str),
+                'Non-Null Count': data.count().values,
+                'Null Count': data.isnull().sum().values,
+                'Null %': (100 * data.isnull().sum() / len(data)).round(2).astype(str) + '%',
+                'Unique Values': [data[col].nunique() for col in data.columns]
+            })
+            
+            # Calculate memory usage for each column
+            memory_usage = data.memory_usage(deep=True)
+            info_df['Memory Usage'] = [f"{memory_usage[i]/1024:.2f} KB" for i in range(len(data.columns))]
+            
+            # Format the dataframe with conditional highlighting
+            st.dataframe(
+                info_df,
+                hide_index=True,
+                use_container_width=True
+            )
+            
+            # Dataset quick stats
+            col1, col2, col3, col4 = st.columns(4)
+            col1.metric("Total Rows", f"{data.shape[0]:,}")
+            col2.metric("Total Columns", data.shape[1])
+            col3.metric("Missing Cells", f"{data.isnull().sum().sum():,}")
+            col4.metric("Memory Usage", f"{data.memory_usage(deep=True).sum()/1024/1024:.2f} MB")
             
             st.subheader("Statistical Summary")
             st.write(data.describe())
             
+            # Missing Values section
             st.subheader("Missing Values")
-            missing = data.isnull().sum()
-            st.write(missing[missing > 0])
+            if data.isnull().sum().sum() > 0:
+                missing = data.isnull().sum()
+                missing = missing[missing > 0].sort_values(ascending=False)
+                
+                # Create a bar chart of missing values
+                fig, ax = plt.subplots(figsize=(10, 6))
+                missing.plot(kind='bar', color="#4361ee", ax=ax)
+                plt.title('Missing Values by Column', fontsize=16, pad=20)
+                plt.ylabel('Count', fontsize=12)
+                plt.xlabel('Columns', fontsize=12)
+                plt.xticks(rotation=45, ha='right')
+                plt.tight_layout()
+                st.pyplot(fig)
+                
+                # Show missing values table
+                missing_df = pd.DataFrame({
+                    'Column': missing.index,
+                    'Missing Count': missing.values,
+                    'Missing %': (100 * missing / len(data)).round(2).astype(str) + '%'
+                })
+                st.dataframe(missing_df, hide_index=True, use_container_width=True)
+            else:
+                st.success("No missing values found in the dataset!")
+                
+            # Outlier Detection section
+            st.subheader("Outlier Detection")
+            
+            # Get numeric columns
+            numeric_cols = data.select_dtypes(include=np.number).columns.tolist()
+            
+            if numeric_cols:
+                # Calculate outliers using IQR method
+                outlier_counts = {}
+                outlier_percents = {}
+                
+                for col in numeric_cols:
+                    # Skip columns with all missing values
+                    if data[col].isna().all():
+                        continue
+                        
+                    Q1 = data[col].quantile(0.25)
+                    Q3 = data[col].quantile(0.75)
+                    IQR = Q3 - Q1
+                    
+                    lower_bound = Q1 - 1.5 * IQR
+                    upper_bound = Q3 + 1.5 * IQR
+                    
+                    outliers = data[(data[col] < lower_bound) | (data[col] > upper_bound)][col]
+                    outlier_count = len(outliers)
+                    
+                    if outlier_count > 0:
+                        outlier_counts[col] = outlier_count
+                        outlier_percents[col] = (outlier_count / len(data)) * 100
+                
+                if outlier_counts:
+                    # Create DataFrame to display outlier information
+                    outlier_df = pd.DataFrame({
+                        'Column': outlier_counts.keys(),
+                        'Outlier Count': outlier_counts.values(),
+                        'Outlier %': [f"{percent:.2f}%" for percent in outlier_percents.values()]
+                    }).sort_values('Outlier Count', ascending=False)
+                    
+                    # Plot outlier counts
+                    fig, ax = plt.subplots(figsize=(10, 6))
+                    sns.barplot(data=outlier_df, x='Column', y='Outlier Count', palette='viridis', ax=ax)
+                    plt.title('Outliers by Column', fontsize=16, pad=20)
+                    plt.ylabel('Count', fontsize=12)
+                    plt.xlabel('Columns', fontsize=12)
+                    plt.xticks(rotation=45, ha='right')
+                    for i, v in enumerate(outlier_df['Outlier Count']):
+                        ax.text(i, v + 0.5, str(v), ha='center', va='bottom', fontweight='bold')
+                    plt.tight_layout()
+                    st.pyplot(fig)
+                    
+                    # Display outlier table
+                    st.dataframe(outlier_df, hide_index=True, use_container_width=True)
+                    
+                    # Option to visualize outliers in a specific column
+                    if len(numeric_cols) > 0:
+                        st.subheader("Visualize Outliers")
+                        selected_col = st.selectbox("Select column to visualize outliers", 
+                                                [col for col in outlier_counts.keys()])
+                        
+                        # Calculate bounds for selected column
+                        Q1 = data[selected_col].quantile(0.25)
+                        Q3 = data[selected_col].quantile(0.75)
+                        IQR = Q3 - Q1
+                        lower_bound = Q1 - 1.5 * IQR
+                        upper_bound = Q3 + 1.5 * IQR
+                        
+                        # Create boxplot
+                        fig, ax = plt.subplots(figsize=(10, 6))
+                        sns.boxplot(x=data[selected_col], ax=ax, color="#4361ee")
+                        plt.title(f'Boxplot with Outliers: {selected_col}', fontsize=16, pad=20)
+                        
+                        # Add annotations for outlier boundaries
+                        plt.axvline(x=lower_bound, color='red', linestyle='--', 
+                                label=f'Lower bound: {lower_bound:.2f}')
+                        plt.axvline(x=upper_bound, color='red', linestyle='--',
+                                label=f'Upper bound: {upper_bound:.2f}')
+                        plt.legend()
+                        plt.tight_layout()
+                        st.pyplot(fig)
+                        
+                        # Show outlier distribution
+                        outlier_data = data[(data[selected_col] < lower_bound) | 
+                                        (data[selected_col] > upper_bound)][selected_col]
+                        
+                        st.write(f"**Outlier Statistics for {selected_col}:**")
+                        st.write(f"- Number of outliers: {len(outlier_data)}")
+                        st.write(f"- Percentage: {len(outlier_data)/len(data)*100:.2f}%")
+                        st.write(f"- Min outlier value: {outlier_data.min()}")
+                        st.write(f"- Max outlier value: {outlier_data.max()}")
+                else:
+                    st.success("No outliers detected in the numeric columns!")
+            else:
+                st.info("No numeric columns found for outlier detection.")
             
         except Exception as e:
             st.error(f"Error: {e}")
