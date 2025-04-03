@@ -218,8 +218,9 @@ elif page == "Explore Data":
                 fig, ax = plt.subplots(1, 2, figsize=(PLOT_WIDTH, PLOT_HEIGHT), gridspec_kw={'width_ratios': [2, 1]})
                 
                 # Histogram with KDE
-                sns.histplot(data[col], kde=True, ax=ax[0], color="#4361ee", 
-                            kde_kws={'color': '#f72585', 'linewidth': 2}, alpha=0.7)
+                sns.histplot(data[col], kde=True, ax=ax[0], color="#4361ee", alpha=0.7)
+                ax[0].lines[0].set_color('#f72585')  # Set KDE line color after plotting
+                ax[0].lines[0].set_linewidth(2)      # Set KDE line width after plotting
                 ax[0].set_title(f'Distribution of {col}', fontsize=14, pad=10)
                 ax[0].set_xlabel(col, fontsize=12)
                 ax[0].set_ylabel('Frequency', fontsize=12)
