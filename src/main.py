@@ -81,7 +81,7 @@ DIVERGING_PALETTE = sns.diverging_palette(230, 20, as_cmap=True)
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
 # Paths to images
-principal_image_path = os.path.join("images", 'portada.png')
+principal_image_path = os.path.join("images", 'baner.png')
 menu_image_path = os.path.join("images", 'frida.png')
 
 # Initialize session state
