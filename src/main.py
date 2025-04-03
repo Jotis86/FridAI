@@ -146,21 +146,21 @@ if page == "Upload Data":
         st.error(f"Error loading image: {e}")
         st.info(f"Looking for image at: {principal_image_path}")
 
-    # Texto explicativo de la aplicación
+    # Texto explicativo de la aplicación con emojis
     st.markdown(f"""
-    ## Welcome to {APP_NAME}!
+    ## ✨ Welcome to {APP_NAME}! 🤖
 
     {APP_NAME} is an interactive tool designed to simplify predictive modeling without writing code.
     Whether you're a data scientist, analyst, or student, this application helps you:
 
-    - **Upload your data** and get immediate insights
-    - **Explore and visualize** your data through various charts
-    - **Train powerful machine learning models** with a few clicks
-    - **Customize parameters** to improve model performance
-    - **Download your trained model** for use in other applications
-    - **Make predictions** on new data without coding
+    - 📊 **Upload your data** and get immediate insights
+    - 📈 **Explore and visualize** your data through various charts
+    - 🧠 **Train powerful machine learning models** with a few clicks
+    - 🎛️ **Customize parameters** to improve model performance
+    - 💾 **Download your trained model** for use in other applications
+    - 🔮 **Make predictions** on new data without coding
 
-    Simply upload your CSV file to get started!
+    Simply upload your CSV file to get started! 🚀
     """)
     
     st.title("Upload Your Data")
