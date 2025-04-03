@@ -1,8 +1,6 @@
-# FridAI 🤖
+# 🤖 FridAI: No-Code Predictive Modeling Tool 🛠️
 
 ![FridAI Banner](images/portada.png)
-
-## 🛠️ No-Code Predictive Modeling Tool  
 
 FridAI is an interactive web app that democratizes machine learning by allowing anyone to build, train, and deploy predictive models **without writing a single line of code**. From data exploration to model deployment, FridAI handles the entire machine learning workflow through an intuitive, visual interface that makes AI accessible to all.
 
