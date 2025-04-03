@@ -112,7 +112,7 @@ st.sidebar.title(f"✨ {APP_NAME}")
 st.sidebar.markdown(f"<p style='font-size: 18px; font-style: italic; color: #4d8b90;'>{APP_DESCRIPTION}</p>", unsafe_allow_html=True)
 
 # App navigation
-page = st.sidebar.radio("", ["Upload Data", "Explore Data", "Train Model", "Download Model"])
+page = st.sidebar.radio("", ["Upload Data", "Explore Data", "Train Model", "Download Model", "Make Predictions"])
 
 # Botón de GitHub estilizado en verde
 st.sidebar.markdown("""
@@ -1025,3 +1025,173 @@ elif page == "Download Model":
             
             # Update download link
             st.markdown(get_model_download_link(model_info, new_filename), unsafe_allow_html=True)
+
+# Make Predictions page
+elif page == "Make Predictions":
+    st.title("🔮 Make Predictions")
+    
+    if not st.session_state.trained:
+        st.warning("Please train a model first before making predictions.")
+    else:
+        model_info = st.session_state.model
+        
+        st.success(f"Using trained {model_info['model_type']} model for {model_info['problem_type']}.")
+        
+        # Display model info
+        st.write(f"**Problem Type:** {model_info['problem_type']}")
+        st.write(f"**Selected Features:** {', '.join(model_info['features'])}")
+        
+        st.subheader("Manual Input Prediction")
+        st.write("Enter values for each feature to get a prediction.")
+        
+        # Collect inputs for each feature
+        input_data = {}
+        
+        for feature in model_info['features']:
+            # Try to get the feature data from the original dataset if available
+            if st.session_state.data is not None and feature in st.session_state.data.columns:
+                orig_data = st.session_state.data[feature]
+                
+                # Handle different data types appropriately
+                if pd.api.types.is_numeric_dtype(orig_data):
+                    # For numeric features, use a number input with reasonable min/max
+                    min_val = float(orig_data.min())
+                    max_val = float(orig_data.max())
+                    default_val = float(orig_data.mean())
+                    
+                    input_data[feature] = st.number_input(
+                        f"Enter value for {feature}", 
+                        min_value=min_val,
+                        max_value=max_val,
+                        value=default_val,
+                        step=(max_val - min_val) / 100,
+                        format="%.4f"
+                    )
+                
+                elif pd.api.types.is_object_dtype(orig_data):
+                    # For categorical features, use a selectbox with unique values
+                    unique_values = orig_data.dropna().unique().tolist()
+                    input_data[feature] = st.selectbox(f"Select value for {feature}", unique_values)
+                
+                else:
+                    # For other types, use a text input
+                    input_data[feature] = st.text_input(f"Enter value for {feature}")
+            
+            else:
+                # If we don't have type information, default to text input
+                input_data[feature] = st.text_input(f"Enter value for {feature}")
+        
+        # Make prediction
+        if st.button("Predict", key="single_predict"):
+            try:
+                # Create a DataFrame from the input
+                X_single = pd.DataFrame([input_data])
+                
+                # Handle categorical features - apply the same encoding
+                categorical_features = X_single.select_dtypes(include=['object']).columns
+                
+                # Apply encoders
+                for col in categorical_features:
+                    if col in model_info['encoders']:
+                        encoder = model_info['encoders'][col]
+                        try:
+                            X_single[col] = encoder.transform(X_single[col])
+                        except:
+                            st.warning(f"Value for {col} not seen during training.")
+                            most_frequent = encoder.transform([encoder.classes_[0]])[0]
+                            X_single[col] = most_frequent
+                
+                # Handle one-hot encoding if used
+                if model_info['encoding_method'] == "One-Hot Encoding" and len(categorical_features) > 0:
+                    # Get original encoded columns
+                    orig_cols = model_info['original_columns']
+                    
+                    # Apply one-hot encoding
+                    X_single = pd.get_dummies(X_single)
+                    
+                    # Ensure all required columns exist
+                    for col in orig_cols:
+                        if col not in X_single.columns:
+                            X_single[col] = 0
+                    
+                    # Keep only columns used in training
+                    X_single = X_single[orig_cols]
+                
+                # Apply scaling if used
+                if model_info['scaler'] is not None:
+                    X_single = model_info['scaler'].transform(X_single)
+                
+                # Make prediction
+                model = model_info['model']
+                
+                if model_info['problem_type'] == "Classification":
+                    # Get prediction
+                    prediction = model.predict(X_single)[0]
+                    
+                    # Convert back to original category if needed
+                    if model_info['target_encoder'] is not None:
+                        prediction = model_info['target_encoder'].inverse_transform([prediction])[0]
+                    
+                    # Get probability if available
+                    try:
+                        probabilities = model.predict_proba(X_single)[0]
+                        
+                        if model_info['target_encoder'] is not None:
+                            class_names = model_info['target_encoder'].classes_
+                        else:
+                            class_names = model.classes_
+                        
+                        # Display result with colorful styling
+                        st.markdown(
+                            f"""
+                            <div style="padding: 20px; border-radius: 10px; background-color: #f0f8ff; margin: 10px 0;">
+                                <h3 style="color: #0066cc; margin-bottom: 10px;">Prediction Result</h3>
+                                <p style="font-size: 24px; font-weight: bold; color: #2c3e50;">{prediction}</p>
+                            </div>
+                            """, 
+                            unsafe_allow_html=True
+                        )
+                        
+                        # Display probabilities
+                        st.subheader("Class Probabilities")
+                        
+                        # Create probability bars
+                        probs_df = pd.DataFrame({
+                            'Class': class_names,
+                            'Probability': probabilities
+                        }).sort_values('Probability', ascending=False)
+                        
+                        fig, ax = plt.subplots(figsize=(10, 6))
+                        bars = sns.barplot(x='Probability', y='Class', data=probs_df, 
+                                          palette='viridis', ax=ax)
+                        
+                        # Add values to bars
+                        for i, v in enumerate(probs_df['Probability']):
+                            ax.text(v + 0.01, i, f"{v:.4f}", va='center')
+                        
+                        plt.title('Prediction Probabilities', fontsize=16, pad=20)
+                        plt.tight_layout()
+                        st.pyplot(fig)
+                        
+                    except:
+                        # Simple prediction without probability
+                        st.success(f"Predicted class: {prediction}")
+                
+                else:  # Regression
+                    # Get prediction
+                    prediction = model.predict(X_single)[0]
+                    
+                    # Display result with colorful styling
+                    st.markdown(
+                        f"""
+                        <div style="padding: 20px; border-radius: 10px; background-color: #f0f8ff; margin: 10px 0;">
+                            <h3 style="color: #0066cc; margin-bottom: 10px;">Prediction Result</h3>
+                            <p style="font-size: 24px; font-weight: bold; color: #2c3e50;">{prediction:.4f}</p>
+                        </div>
+                        """, 
+                        unsafe_allow_html=True
+                    )
+            
+            except Exception as e:
+                st.error(f"Error making prediction: {e}")
+                st.error(f"Exception details: {str(e)}")
