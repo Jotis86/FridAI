@@ -148,7 +148,7 @@ if page == "Upload Data":
 
     # Texto explicativo de la aplicación con emojis
     st.markdown(f"""
-    ## ✨ Welcome to {APP_NAME}! 🤖
+    ## ✨ Welcome to {APP_NAME} 🤖
 
     {APP_NAME} is an interactive tool designed to simplify predictive modeling without writing code.
     Whether you're a data scientist, analyst, or student, this application helps you:
