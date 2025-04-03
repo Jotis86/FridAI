@@ -12,6 +12,11 @@ from sklearn.metrics import accuracy_score, mean_squared_error, r2_score, classi
 import pickle
 import io
 import base64
+import sys
+import os
+
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # Add parent directory to path
 
 # Import settings
 from config.settings import (
