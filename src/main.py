@@ -73,7 +73,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 
 # Paths to images
 principal_image_path = os.path.join("images", 'portada.png')
-menu_image_path = os.path.join("images", 'funko.png')
+menu_image_path = os.path.join("images", 'frida.png')
 
 # Initialize session state
 if 'data' not in st.session_state:
