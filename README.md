@@ -135,13 +135,40 @@ The application follows a modular architecture with:
 - **Scikit-learn** – Industry-standard machine learning implementations
 - **Pickle** – Object serialization and persistence
 
-## 📄 License  
+## 📄 License ⚖️  
 
-See the [LICENSE](LICENSE) file for the full license text. 
+FridAI is proudly released under the **MIT License** 🔓
 
-## 👤 Author  
+### What This Means For You 🤔
+
+The MIT License is one of the most permissive and user-friendly licenses in the open-source world:
+
+- ✅ **Freedom to Use**: Use FridAI in your personal or commercial projects with no restrictions
+- ✅ **Freedom to Modify**: Customize and enhance FridAI to fit your specific needs
+- ✅ **Freedom to Share**: Distribute your modified versions to help the community grow
+- ✅ **Freedom to Integrate**: Incorporate FridAI into larger systems, even proprietary ones
+- ✅ **No Warranty**: While we strive for quality, the software is provided "as is"
+- ✅ **Simple Attribution**: Just keep the copyright notice and permission notice
+
+This open approach reflects our commitment to accessible AI tools that empower everyone, regardless of their coding expertise or financial resources 🌍💫
+
+For legal precision, the complete license text is available in the [LICENSE](LICENSE) file.
+
+Copyright (c) 2025 Jotis
+
+## 👤 Author & Background 🧑‍💻  
 
 Created with 💙 by [Jotis](https://github.com/Jotis86)  
+
+### About the Creator ✨
+
+Jotis is a passionate data scientist and software developer with a vision to democratize AI technology. FridAI emerged from the belief that powerful machine learning tools should be accessible to everyone, not just those with extensive coding experience.
+
+### Connect & Contribute 🔗
+
+- 🐙 **GitHub**: [Jotis86](https://github.com/Jotis86)
+- 📧 **Contact**: For questions or collaborations, open an issue on GitHub
+- 🌐 **Portfolio**: [Check out my other projects](https://jotis86.github.io/Website/)
 
 ## 🤝 Contributing
 
