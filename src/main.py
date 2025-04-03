@@ -68,6 +68,15 @@ def get_model_download_link(model_dict, filename="model.pkl"):
     href = f'<a href="data:file/pickle;base64,{b64}" download="{filename}">Download Trained Model (.pkl)</a>'
     return href
 
+# Set better default styles for matplotlib
+plt.style.use('seaborn-v0_8-whitegrid')
+sns.set(font_scale=1.2)
+sns.set_style("whitegrid", {'grid.linestyle': '--', 'grid.alpha': 0.6})
+
+# Custom color palettes for attractive visualizations
+PALETTE = ["#4361ee", "#3a0ca3", "#7209b7", "#f72585", "#4cc9f0"]
+DIVERGING_PALETTE = sns.diverging_palette(230, 20, as_cmap=True)
+
 # Obtener la ruta absoluta del directorio actual
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -199,32 +208,113 @@ elif page == "Explore Data":
         categorical_cols = data.select_dtypes(include=['object']).columns.tolist()
         
         viz_type = st.selectbox("Select Visualization Type", 
-                               ["Distribution", "Correlation", "Categorical Analysis"])
+                               ["Distribution", "Correlation", "Categorical Analysis", "Scatter Plot"])
         
         if viz_type == "Distribution":
             if numeric_cols:
                 col = st.selectbox("Select Numeric Column", numeric_cols)
                 
-                fig, ax = plt.subplots(1, 2, figsize=(PLOT_WIDTH, PLOT_HEIGHT))
-                sns.histplot(data[col], kde=True, ax=ax[0])
-                ax[0].set_title(f'Distribution of {col}')
+                # Create enhanced distribution plot
+                fig, ax = plt.subplots(1, 2, figsize=(PLOT_WIDTH, PLOT_HEIGHT), gridspec_kw={'width_ratios': [2, 1]})
                 
-                sns.boxplot(y=data[col], ax=ax[1])
-                ax[1].set_title(f'Boxplot of {col}')
+                # Histogram with KDE
+                sns.histplot(data[col], kde=True, ax=ax[0], color="#4361ee", 
+                            kde_kws={'color': '#f72585', 'linewidth': 2}, alpha=0.7)
+                ax[0].set_title(f'Distribution of {col}', fontsize=14, pad=10)
+                ax[0].set_xlabel(col, fontsize=12)
+                ax[0].set_ylabel('Frequency', fontsize=12)
                 
+                # Add mean and median lines
+                mean_val = data[col].mean()
+                median_val = data[col].median()
+                
+                ax[0].axvline(mean_val, color='#ff9e00', linestyle='--', linewidth=2, 
+                             label=f'Mean: {mean_val:.2f}')
+                ax[0].axvline(median_val, color='#38b000', linestyle='-', linewidth=2, 
+                             label=f'Median: {median_val:.2f}')
+                ax[0].legend(fontsize=10)
+                
+                # Boxplot
+                sns.boxplot(y=data[col], ax=ax[1], palette=["#4361ee"], width=0.4)
+                ax[1].set_title(f'Boxplot of {col}', fontsize=14, pad=10)
+                ax[1].set_ylabel('')  # Remove y label on boxplot
+                
+                # Annotate with quartile values
+                q1, q3 = data[col].quantile(0.25), data[col].quantile(0.75)
+                ax[1].annotate(f'Q1: {q1:.2f}', xy=(0.1, q1), xytext=(0.4, q1),
+                              color='white', fontweight='bold', backgroundcolor='#4361ee', fontsize=9)
+                ax[1].annotate(f'Q3: {q3:.2f}', xy=(0.1, q3), xytext=(0.4, q3),
+                              color='white', fontweight='bold', backgroundcolor='#4361ee', fontsize=9)
+                
+                plt.tight_layout()
                 st.pyplot(fig)
                 
-                st.write(f"**Statistics for {col}:**")
-                st.write(data[col].describe())
+                # Statistical summary in a nicer format
+                st.subheader(f"Statistical Summary for {col}")
+                
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.metric("Mean", f"{data[col].mean():.2f}")
+                    st.metric("Min", f"{data[col].min():.2f}")
+                with col2:
+                    st.metric("Median", f"{data[col].median():.2f}")
+                    st.metric("Max", f"{data[col].max():.2f}")
+                with col3:
+                    st.metric("Std Dev", f"{data[col].std():.2f}")
+                    st.metric("Range", f"{data[col].max() - data[col].min():.2f}")
+                with col4:
+                    st.metric("Skewness", f"{data[col].skew():.2f}")
+                    st.metric("Missing", f"{data[col].isna().sum()}")
+                
             else:
                 st.warning("No numeric columns found in the dataset.")
         
         elif viz_type == "Correlation":
             if len(numeric_cols) > 1:
-                fig, ax = plt.subplots(figsize=(PLOT_WIDTH, PLOT_HEIGHT))
+                st.markdown("### Correlation Heatmap")
+                
+                # Create a more attractive heatmap
                 corr_matrix = data[numeric_cols].corr()
-                sns.heatmap(corr_matrix, annot=True, cmap=CORRELATION_CMAP, ax=ax)
+                
+                # Allow user to control heatmap size
+                heatmap_height = st.slider("Adjust heatmap size", 400, 800, 600)
+                
+                fig, ax = plt.subplots(figsize=(PLOT_WIDTH, PLOT_HEIGHT * (heatmap_height/600)))
+                mask = np.triu(np.ones_like(corr_matrix, dtype=bool))  # Optional: mask upper triangle
+                
+                # Create heatmap with annotations
+                heatmap = sns.heatmap(
+                    corr_matrix, 
+                    mask=mask,
+                    annot=True,
+                    fmt='.2f',
+                    cmap=DIVERGING_PALETTE,
+                    linewidths=1,
+                    cbar_kws={"shrink": .8},
+                    square=True,
+                    ax=ax,
+                    vmin=-1, vmax=1,
+                    annot_kws={"size": 10}
+                )
+                
+                ax.set_title("Correlation Matrix", fontsize=16, pad=20)
+                plt.tight_layout()
                 st.pyplot(fig)
+                
+                # Add correlation explanation
+                st.markdown("""
+                ### Understanding Correlation Values:
+                - **1.0**: Perfect positive correlation
+                - **0.7 to 0.9**: Strong positive correlation
+                - **0.4 to 0.6**: Moderate positive correlation
+                - **0.1 to 0.3**: Weak positive correlation
+                - **0**: No correlation
+                - **-0.1 to -0.3**: Weak negative correlation
+                - **-0.4 to -0.6**: Moderate negative correlation
+                - **-0.7 to -0.9**: Strong negative correlation
+                - **-1.0**: Perfect negative correlation
+                """)
+                
             else:
                 st.warning("Need at least 2 numeric columns for correlation analysis.")
         
@@ -232,18 +322,121 @@ elif page == "Explore Data":
             if categorical_cols:
                 cat_col = st.selectbox("Select Categorical Column", categorical_cols)
                 
-                fig, ax = plt.subplots(figsize=(PLOT_WIDTH, PLOT_HEIGHT))
+                # Get value counts and sort
                 value_counts = data[cat_col].value_counts()
-                sns.barplot(x=value_counts.index, y=value_counts.values, ax=ax)
+                
+                # Handle many categories
+                if len(value_counts) > 15:
+                    st.info(f"Showing top 15 of {len(value_counts)} categories")
+                    value_counts = value_counts.head(15)
+                
+                # Create enhanced bar plot
+                fig, ax = plt.subplots(figsize=(PLOT_WIDTH, PLOT_HEIGHT))
+                
+                bars = sns.barplot(
+                    x=value_counts.index, 
+                    y=value_counts.values,
+                    palette=sns.color_palette("viridis", len(value_counts)),
+                    ax=ax
+                )
+                
+                # Add value labels on top of bars
+                for i, v in enumerate(value_counts.values):
+                    ax.text(i, v + (value_counts.max() * 0.02), str(v), 
+                           ha='center', va='bottom', fontweight='bold', fontsize=10)
+                
+                ax.set_title(f'Distribution of {cat_col}', fontsize=16, pad=20)
+                ax.set_xlabel(cat_col, fontsize=14)
+                ax.set_ylabel('Count', fontsize=14)
+                
+                # Rotate x labels if needed
                 plt.xticks(rotation=45, ha='right')
-                plt.title(f'Count of {cat_col}')
                 plt.tight_layout()
                 st.pyplot(fig)
                 
-                st.write(f"**Value Counts for {cat_col}:**")
-                st.write(value_counts)
+                # Show percentage distribution
+                st.subheader("Category Distribution")
+                value_percentage = pd.DataFrame({
+                    'Count': value_counts.values,
+                    'Percentage': (100 * value_counts / value_counts.sum()).round(2)
+                })
+                value_percentage.index = value_counts.index
+                value_percentage['Percentage'] = value_percentage['Percentage'].astype(str) + '%'
+                st.dataframe(value_percentage)
+                
             else:
                 st.warning("No categorical columns found in the dataset.")
+                
+        elif viz_type == "Scatter Plot":
+            if len(numeric_cols) >= 2:
+                col1 = st.selectbox("Select X-Axis Column", numeric_cols)
+                remaining_cols = [col for col in numeric_cols if col != col1]
+                col2 = st.selectbox("Select Y-Axis Column", remaining_cols)
+                
+                # Optional color by category
+                color_by = None
+                if categorical_cols:
+                    use_color = st.checkbox("Color by category", value=False)
+                    if use_color:
+                        color_by = st.selectbox("Select category for coloring", categorical_cols)
+                
+                # Create enhanced scatter plot
+                fig, ax = plt.subplots(figsize=(PLOT_WIDTH, PLOT_HEIGHT))
+                
+                if color_by:
+                    # Calculate n_colors based on unique categories
+                    n_colors = min(len(data[color_by].unique()), 10)
+                    scatter = sns.scatterplot(
+                        data=data, 
+                        x=col1, 
+                        y=col2, 
+                        hue=color_by,
+                        palette=sns.color_palette("viridis", n_colors),
+                        s=80,  # Point size
+                        alpha=0.7,
+                        ax=ax
+                    )
+                    
+                    # Enhance legend
+                    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', title=color_by)
+                    
+                else:
+                    scatter = sns.scatterplot(
+                        data=data, 
+                        x=col1, 
+                        y=col2,
+                        color="#4361ee",
+                        s=80,  # Point size
+                        alpha=0.7,
+                        ax=ax
+                    )
+                
+                # Add regression line
+                sns.regplot(
+                    data=data, 
+                    x=col1, 
+                    y=col2, 
+                    scatter=False, 
+                    ax=ax,
+                    line_kws={"color": "red", "linestyle": "--", "linewidth": 2}
+                )
+                
+                ax.set_title(f'Scatter Plot: {col1} vs {col2}', fontsize=16, pad=20)
+                ax.set_xlabel(col1, fontsize=14)
+                ax.set_ylabel(col2, fontsize=14)
+                
+                # Calculate and display correlation
+                correlation = data[[col1, col2]].corr().iloc[0, 1]
+                ax.annotate(f"Correlation: {correlation:.4f}", 
+                           xy=(0.05, 0.95), xycoords='axes fraction',
+                           bbox=dict(boxstyle="round,pad=0.3", fc="#f8f9fa", ec="gray", alpha=0.8),
+                           fontsize=12)
+                
+                plt.tight_layout()
+                st.pyplot(fig)
+                
+            else:
+                st.warning("Need at least 2 numeric columns for scatter plot.")
 
 # Train Model page
 elif page == "Train Model":
@@ -438,12 +631,45 @@ elif page == "Train Model":
                             # Display confusion matrix
                             st.subheader("Confusion Matrix")
                             cm = confusion_matrix(y_test, y_pred)
-                            fig, ax = plt.subplots(figsize=(8, 6))
-                            sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', ax=ax)
-                            plt.xlabel('Predicted')
-                            plt.ylabel('Actual')
-                            plt.title('Confusion Matrix')
-                            st.pyplot(fig)
+                            
+                            # Get class names
+                            if target_encoder:
+                                classes = target_encoder.classes_
+                                if len(classes) > 10:  # If too many classes, use numeric labels
+                                    classes = [str(i) for i in range(len(classes))]
+                            else:
+                                classes = sorted(np.unique(y_test))
+                                if len(classes) > 10:
+                                    classes = [str(i) for i in range(len(classes))]
+                            
+                            # Create enhanced confusion matrix
+                            plt.figure(figsize=(10, 8))
+                            ax = sns.heatmap(
+                                cm, 
+                                annot=True, 
+                                fmt='d', 
+                                cmap='Blues',
+                                xticklabels=classes,
+                                yticklabels=classes,
+                                linewidths=0.5,
+                                linecolor='gray',
+                                annot_kws={"size": 12, "weight": "bold"},
+                                square=True,
+                                cbar_kws={"shrink": .8, "label": "Count"}
+                            )
+                            
+                            # Add titles and labels
+                            plt.title('Confusion Matrix', fontsize=16, pad=20)
+                            plt.xlabel('Predicted Label', fontsize=12)
+                            plt.ylabel('True Label', fontsize=12)
+                            
+                            # Rotate labels if needed
+                            if len(classes) > 4:
+                                plt.xticks(rotation=45, ha='right')
+                            
+                            plt.tight_layout()
+                            st.pyplot(plt.gcf())
+                            plt.clf()
                             
                             # Display classification report
                             st.subheader("Classification Report")
@@ -469,11 +695,46 @@ elif page == "Train Model":
                             
                             # Plot actual vs predicted
                             fig, ax = plt.subplots(figsize=(PLOT_WIDTH, PLOT_HEIGHT))
-                            ax.scatter(y_test, y_pred, alpha=0.5)
-                            ax.plot([y.min(), y.max()], [y.min(), y.max()], 'k--', lw=2)
-                            ax.set_xlabel('Actual')
-                            ax.set_ylabel('Predicted')
-                            ax.set_title('Actual vs Predicted Values')
+                            
+                            # Create scatter plot
+                            sns.scatterplot(
+                                x=y_test, 
+                                y=y_pred, 
+                                alpha=0.6, 
+                                color="#4361ee",
+                                s=80,
+                                ax=ax
+                            )
+                            
+                            # Add perfect prediction line
+                            min_val = min(y_test.min(), y_pred.min())
+                            max_val = max(y_test.max(), y_pred.max())
+                            ax.plot([min_val, max_val], [min_val, max_val], 'k--', lw=2, 
+                                    label='Perfect Prediction')
+                            
+                            # Add regression line
+                            sns.regplot(
+                                x=y_test, 
+                                y=y_pred, 
+                                scatter=False,
+                                color='red',
+                                line_kws={"linestyle": "-", "linewidth": 2},
+                                ax=ax
+                            )
+                            
+                            # Enhance plot appearance
+                            ax.set_xlabel('Actual Values', fontsize=14)
+                            ax.set_ylabel('Predicted Values', fontsize=14)
+                            ax.set_title('Actual vs Predicted Values', fontsize=16, pad=20)
+                            
+                            # Add metrics annotation
+                            ax.annotate(f"MSE: {mse:.4f}\nR²: {r2:.4f}", 
+                                       xy=(0.05, 0.95), xycoords='axes fraction',
+                                       bbox=dict(boxstyle="round,pad=0.3", fc="#f8f9fa", ec="gray", alpha=0.8),
+                                       fontsize=12)
+                            
+                            ax.legend(loc='lower right')
+                            plt.tight_layout()
                             st.pyplot(fig)
                     
                     # Save model and metadata in session state
@@ -506,6 +767,7 @@ elif page == "Train Model":
                     # Feature importance for tree-based models
                     if model_type in ["Random Forest", "Gradient Boosting"]:
                         st.subheader("Feature Importance")
+                        
                         # For one-hot encoded data, we need to map back to original feature names
                         if encoding_option == "One-Hot Encoding" and len(categorical_features) > 0:
                             # Get feature names after one-hot encoding
@@ -513,18 +775,41 @@ elif page == "Train Model":
                         else:
                             feature_names = features
                             
+                        # Create feature importance DataFrame
                         feature_imp = pd.DataFrame({
                             'Feature': feature_names,
                             'Importance': model.feature_importances_
                         }).sort_values('Importance', ascending=False)
                         
-                        fig, ax = plt.subplots(figsize=(PLOT_WIDTH, PLOT_HEIGHT))
-                        sns.barplot(x='Importance', y='Feature', data=feature_imp.head(20), ax=ax)
-                        plt.title('Feature Importance (Top 20)')
-                        plt.tight_layout()
-                        st.pyplot(fig)
+                        # Limit to top 20 for readability
+                        if len(feature_imp) > 20:
+                            feature_imp = feature_imp.head(20)
                         
-                        st.dataframe(feature_imp)
+                        # Create enhanced feature importance plot
+                        plt.figure(figsize=(10, 8))
+                        ax = sns.barplot(
+                            data=feature_imp,
+                            y='Feature',
+                            x='Importance',
+                            palette=sns.color_palette("viridis", len(feature_imp)),
+                            edgecolor='black',
+                            linewidth=1
+                        )
+                        
+                        # Add values to the bars
+                        for i, v in enumerate(feature_imp['Importance']):
+                            ax.text(v + 0.01, i, f"{v:.4f}", va='center', fontweight='bold')
+                        
+                        plt.title('Feature Importance (Top 20)', fontsize=16, pad=20)
+                        plt.xlabel('Importance', fontsize=12)
+                        plt.ylabel('Feature', fontsize=12)
+                        plt.tight_layout()
+                        
+                        st.pyplot(plt.gcf())
+                        plt.clf()
+                        
+                        # Show feature importance table
+                        st.dataframe(feature_imp.reset_index(drop=True))
                 
                 except Exception as e:
                     st.error(f"Error training model: {e}")
