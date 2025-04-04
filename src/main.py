@@ -1168,23 +1168,86 @@ elif page == "Make Predictions":
                         # Display probabilities
                         st.subheader("Class Probabilities")
                         
-                        # Create probability bars
+                        # Create probability bars with improved styling
                         probs_df = pd.DataFrame({
                             'Class': class_names,
                             'Probability': probabilities
                         }).sort_values('Probability', ascending=False)
                         
+                        # Create a color palette based on probability values
+                        n_classes = len(probs_df)
+                        colors = plt.cm.RdYlBu_r(np.linspace(0.2, 0.8, n_classes))
+                        
                         fig, ax = plt.subplots(figsize=(10, 6))
-                        bars = sns.barplot(x='Probability', y='Class', data=probs_df, 
-                                          palette='viridis', ax=ax)
+                        fig.patch.set_facecolor('#f9f9f9')
+                        ax.set_facecolor('#f9f9f9')
                         
-                        # Add values to bars
-                        for i, v in enumerate(probs_df['Probability']):
-                            ax.text(v + 0.01, i, f"{v:.4f}", va='center')
+                        # Create bars with custom styling
+                        bars = ax.barh(probs_df['Class'], probs_df['Probability'], 
+                                    color=colors, alpha=0.8, height=0.6,
+                                    edgecolor='white', linewidth=1.5)
                         
-                        plt.title('Prediction Probabilities', fontsize=16, pad=20)
+                        # Add a thin grid for better readability
+                        ax.grid(axis='x', linestyle='--', alpha=0.3, zorder=0)
+                        
+                        # Style the axes
+                        ax.spines['top'].set_visible(False)
+                        ax.spines['right'].set_visible(False)
+                        ax.spines['left'].set_color('#dddddd')
+                        ax.spines['bottom'].set_color('#dddddd')
+                        ax.tick_params(axis='both', colors='#666666')
+                        
+                        # Add values on the bars
+                        for i, bar in enumerate(bars):
+                            value = probs_df['Probability'].iloc[i]
+                            text_color = 'white' if value > 0.4 else '#333333'
+                            ax.text(
+                                value + 0.01, i, 
+                                f"{value:.2%}", 
+                                va='center', 
+                                ha='left',
+                                fontsize=12,
+                                fontweight='bold',
+                                color=text_color
+                            )
+                        
+                        # Remove y-label as it's redundant
+                        ax.set_ylabel('')
+                        
+                        # Customize x-axis to show percentages
+                        ax.set_xlim(0, max(1.0, max(probs_df['Probability']) * 1.15))
+                        ax.set_xticks([0, 0.25, 0.5, 0.75, 1.0])
+                        ax.set_xticklabels(['0%', '25%', '50%', '75%', '100%'])
+                        ax.set_xlabel('Probability', fontsize=12, color='#555555')
+                        
+                        # Add a styled title
+                        plt.suptitle('Prediction Probabilities', 
+                                    fontsize=20, 
+                                    color='#2c3e50', 
+                                    y=0.95,
+                                    fontweight='bold')
+                        
+                        # Add a descriptive subtitle
+                        plt.title('Likelihood of each possible class', 
+                                fontsize=12, 
+                                color='#777777',
+                                pad=15)
+                        
                         plt.tight_layout()
                         st.pyplot(fig)
+                        
+                        # Add contextual information about the prediction
+                        highest_prob = probs_df['Probability'].iloc[0]
+                        highest_class = probs_df['Class'].iloc[0]
+                        confidence_level = "High" if highest_prob > 0.7 else "Medium" if highest_prob > 0.4 else "Low"
+                        confidence_color = "#28a745" if highest_prob > 0.7 else "#ffc107" if highest_prob > 0.4 else "#dc3545"
+                        
+                        st.markdown(f"""
+                        <div style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 20px;">
+                            <p style="margin-bottom: 8px;">The model has <span style="color: {confidence_color}; font-weight: bold;">{confidence_level} confidence</span> in its prediction.</p>
+                            <p style="font-size: 0.9em; color: #6c757d;">The predicted class <b>{highest_class}</b> has a probability of <b>{highest_prob:.2%}</b>.</p>
+                        </div>
+                        """, unsafe_allow_html=True)
                         
                     except:
                         # Simple prediction without probability
