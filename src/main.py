@@ -128,12 +128,12 @@ st.sidebar.markdown("""
 </a>
 """, unsafe_allow_html=True)
 
-# Sección personalizada de información del creador
+# Sección personalizada de información del creador con el mismo color marrón claro
 st.sidebar.markdown(f"""
-<div style='background-color: #f5f7f9; padding: 10px; border-radius: 8px; margin-top: 10px;'>
-    <h4 style='color: #333; margin-bottom: 5px;'>Created with 💙</h4>
-    <p style='color: #666; margin-bottom: 5px; font-size: 14px;'>by <span style='font-weight: bold; color: #2c3e50;'>{AUTHOR}</span></p>
-    <p style='color: #888; font-size: 12px; margin-top: 5px;'>© 2025 {APP_NAME} - All rights reserved</p>
+<div style='background-color: #D2B48C; padding: 10px; border-radius: 8px; margin-top: 10px;'>
+    <h4 style='color: white; margin-bottom: 5px;'>Created with 💙</h4>
+    <p style='color: white; margin-bottom: 5px; font-size: 14px;'>by <span style='font-weight: bold; color: white;'>{AUTHOR}</span></p>
+    <p style='color: rgba(255,255,255,0.8); font-size: 12px; margin-top: 5px;'>© 2025 {APP_NAME} - All rights reserved</p>
 </div>
 """, unsafe_allow_html=True)
 
