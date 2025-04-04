@@ -2,6 +2,17 @@
 
 ![FridAI Banner](images/portada.png)
 
+<div align="center">
+  
+[![GitHub commits](https://img.shields.io/github/commit-activity/t/Jotis86/FridAI?label=Commits&color=C19A6B)](https://github.com/Jotis86/FridAI/commits/main)
+[![GitHub stars](https://img.shields.io/github/stars/Jotis86/FridAI?style=flat&label=Stars&color=C19A6B)](https://github.com/Jotis86/FridAI/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/Jotis86/FridAI?style=flat&label=Forks&color=C19A6B)](https://github.com/Jotis86/FridAI/network/members)
+[![GitHub issues](https://img.shields.io/github/issues/Jotis86/FridAI?style=flat&label=Issues&color=C19A6B)](https://github.com/Jotis86/FridAI/issues)
+[![License](https://img.shields.io/github/license/Jotis86/FridAI?style=flat&label=License&color=C19A6B)](LICENSE)
+[![Last commit](https://img.shields.io/github/last-commit/Jotis86/FridAI?style=flat&label=Last%20Commit&color=C19A6B)](https://github.com/Jotis86/FridAI/commits/main)
+
+</div>
+
 FridAI is an interactive web app that democratizes machine learning by allowing anyone to build, train, and deploy predictive models **without writing a single line of code**. From data exploration to model deployment, FridAI handles the entire machine learning workflow through an intuitive, visual interface that makes AI accessible to all.
 
 ## 🔍 Key Features  
