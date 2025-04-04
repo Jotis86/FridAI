@@ -74,19 +74,10 @@ FridAI is an interactive web app that democratizes machine learning by allowing 
 - Required packages listed in `requirements.txt`
 - Git (optional, for version control)
 
-## 📊 Screenshots
+## 📊 App Screenshot
 
-### Data Upload and Analysis
-![Data Analysis](images/screenshot1.png)
-*Screenshot shows the data upload and initial analysis interface*
-
-### Model Training Interface
-![Model Training](images/screenshot2.png)
-*The model training interface with parameter configuration*
-
-### Prediction Dashboard
-![Predictions](images/screenshot3.png)
-*Making predictions with the trained model*
+![FridAI Main Interface](images/captura.png)
+*The main interface of FridAI showing the intuitive dashboard where users can upload data, explore insights, and build machine learning models without writing code.*
 
 ## 📖 How to Use  
 
