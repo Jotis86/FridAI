@@ -265,10 +265,19 @@ if page == "Upload Data":
                     # Skip columns with all missing values
                     if data[col].isna().all():
                         continue
+                    
+                    # Skip binary/categorical columns (with few unique values)
+                    unique_values = data[col].nunique()
+                    if unique_values <= 5:  # Skip columns with 5 or fewer unique values
+                        continue
                         
                     Q1 = data[col].quantile(0.25)
                     Q3 = data[col].quantile(0.75)
                     IQR = Q3 - Q1
+                    
+                    # Skip columns with zero IQR (constant or nearly constant values)
+                    if IQR == 0:
+                        continue
                     
                     lower_bound = Q1 - 1.5 * IQR
                     upper_bound = Q3 + 1.5 * IQR
@@ -288,15 +297,27 @@ if page == "Upload Data":
                         'Outlier %': [f"{percent:.2f}%" for percent in outlier_percents.values()]
                     }).sort_values('Outlier Count', ascending=False)
                     
-                    # Plot outlier counts
+                    # Plot outlier counts with improved styling
                     fig, ax = plt.subplots(figsize=(10, 6))
-                    sns.barplot(data=outlier_df, x='Column', y='Outlier Count', palette='viridis', ax=ax)
-                    plt.title('Outliers by Column', fontsize=16, pad=20)
-                    plt.ylabel('Count', fontsize=12)
-                    plt.xlabel('Columns', fontsize=12)
+                    
+                    # Use a better color palette
+                    palette = sns.color_palette("viridis", len(outlier_df))
+                    bars = sns.barplot(data=outlier_df, x='Column', y='Outlier Count', palette=palette, ax=ax)
+                    
+                    # Style the chart
+                    ax.set_title('Outliers by Column', fontsize=18, pad=20)
+                    ax.set_ylabel('Count', fontsize=13)
+                    ax.set_xlabel('Columns', fontsize=13)
                     plt.xticks(rotation=45, ha='right')
+                    
+                    # Add count labels on top of bars
                     for i, v in enumerate(outlier_df['Outlier Count']):
                         ax.text(i, v + 0.5, str(v), ha='center', va='bottom', fontweight='bold')
+                    
+                    # Add a note about binary columns
+                    plt.figtext(0.5, 0.01, "Note: Binary and categorical columns (≤5 unique values) are excluded from outlier detection", 
+                            ha="center", fontsize=10, style='italic', color='#666666')
+                    
                     plt.tight_layout()
                     st.pyplot(fig)
                     
@@ -304,7 +325,7 @@ if page == "Upload Data":
                     st.dataframe(outlier_df, hide_index=True, use_container_width=True)
                     
                     # Option to visualize outliers in a specific column
-                    if len(numeric_cols) > 0:
+                    if len(outlier_counts) > 0:
                         st.subheader("Visualize Outliers")
                         selected_col = st.selectbox("Select column to visualize outliers", 
                                                 [col for col in outlier_counts.keys()])
@@ -316,29 +337,57 @@ if page == "Upload Data":
                         lower_bound = Q1 - 1.5 * IQR
                         upper_bound = Q3 + 1.5 * IQR
                         
-                        # Create boxplot
-                        fig, ax = plt.subplots(figsize=(10, 6))
-                        sns.boxplot(x=data[selected_col], ax=ax, color="#4361ee")
-                        plt.title(f'Boxplot with Outliers: {selected_col}', fontsize=16, pad=20)
+                        # Create two visualizations: boxplot and histogram with bounds
+                        col1, col2 = st.columns(2)
                         
-                        # Add annotations for outlier boundaries
-                        plt.axvline(x=lower_bound, color='red', linestyle='--', 
-                                label=f'Lower bound: {lower_bound:.2f}')
-                        plt.axvline(x=upper_bound, color='red', linestyle='--',
-                                label=f'Upper bound: {upper_bound:.2f}')
-                        plt.legend()
-                        plt.tight_layout()
-                        st.pyplot(fig)
+                        with col1:
+                            # Boxplot
+                            fig1, ax1 = plt.subplots(figsize=(6, 4))
+                            sns.boxplot(x=data[selected_col], ax=ax1, color="#4361ee")
+                            ax1.set_title(f'Boxplot: {selected_col}', fontsize=14)
+                            plt.tight_layout()
+                            st.pyplot(fig1)
+                        
+                        with col2:
+                            # Histogram with bounds
+                            fig2, ax2 = plt.subplots(figsize=(6, 4))
+                            sns.histplot(data[selected_col], kde=True, ax=ax2, color="#4361ee")
+                            
+                            # Add vertical lines for bounds
+                            ax2.axvline(x=lower_bound, color='red', linestyle='--', label=f'Lower bound: {lower_bound:.2f}')
+                            ax2.axvline(x=upper_bound, color='red', linestyle='--', label=f'Upper bound: {upper_bound:.2f}')
+                            
+                            # Shade outlier regions
+                            xmin, xmax = ax2.get_xlim()
+                            x = np.linspace(xmin, xmax, 1000)
+                            ax2.fill_between(x, 0, 1, where=(x < lower_bound) | (x > upper_bound), 
+                                            color='red', alpha=0.2, transform=ax2.get_xaxis_transform())
+                            
+                            ax2.set_title(f'Distribution: {selected_col}', fontsize=14)
+                            ax2.legend(fontsize=8)
+                            plt.tight_layout()
+                            st.pyplot(fig2)
                         
                         # Show outlier distribution
                         outlier_data = data[(data[selected_col] < lower_bound) | 
                                         (data[selected_col] > upper_bound)][selected_col]
                         
-                        st.write(f"**Outlier Statistics for {selected_col}:**")
-                        st.write(f"- Number of outliers: {len(outlier_data)}")
-                        st.write(f"- Percentage: {len(outlier_data)/len(data)*100:.2f}%")
-                        st.write(f"- Min outlier value: {outlier_data.min()}")
-                        st.write(f"- Max outlier value: {outlier_data.max()}")
+                        # Show statistics in a more attractive format
+                        st.markdown(f"""
+                        <div style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 10px;">
+                            <h4 style="color: #2c3e50; margin-bottom: 10px;">Outlier Statistics for {selected_col}</h4>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr;">
+                                <div style="padding: 5px;">
+                                    <p style="font-weight: bold; margin-bottom: 5px;">Count</p>
+                                    <p style="font-size: 18px;">{len(outlier_data)} <span style="font-size: 14px; color: #666;">({len(outlier_data)/len(data)*100:.2f}%)</span></p>
+                                </div>
+                                <div style="padding: 5px;">
+                                    <p style="font-weight: bold; margin-bottom: 5px;">Range</p>
+                                    <p style="font-size: 14px;">Min: <b>{outlier_data.min():.4g}</b><br>Max: <b>{outlier_data.max():.4g}</b></p>
+                                </div>
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
                 else:
                     st.success("No outliers detected in the numeric columns!")
             else:
