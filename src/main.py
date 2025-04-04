@@ -50,12 +50,25 @@ except ImportError:
     PLOT_HEIGHT = 6
     CORRELATION_CMAP = "coolwarm"
 
-# Set page configuration
+# Set page configuration with custom menu items
 st.set_page_config(
     page_title=f"{APP_NAME} - {APP_DESCRIPTION}",
     page_icon="🤖",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
+    menu_items={
+        'Get Help': 'https://github.com/Jotis86/FridAI#-how-to-use',
+        'Report a bug': 'https://github.com/Jotis86/FridAI/issues/new',
+        'About': f"""
+        ### {APP_NAME} - {APP_DESCRIPTION}
+        
+        Created with 💙 by {AUTHOR}
+        
+        Version: {VERSION}
+        
+        FridAI is an interactive web app that democratizes machine learning by allowing anyone to build, train, and deploy predictive models without writing a single line of code.
+        """
+    }
 )
 
 # Function to download model as pickle file
