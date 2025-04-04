@@ -679,6 +679,15 @@ elif page == "Train Model":
         # Data preprocessing options
         st.subheader("Data Preprocessing")
         handle_missing = st.checkbox("Handle Missing Values (replace with mean/mode)", value=True)
+
+        # Nueva sección para manejo de outliers
+        handle_outliers = st.checkbox("Detect Outliers (using IQR method)", value=False)
+        if handle_outliers:
+            outlier_method = st.radio(
+                "Outlier Handling Method",
+                ["Keep", "Remove", "Impute with boundaries"],
+                horizontal=True
+            )
         
         scaling_option = st.selectbox(
             "Apply Feature Scaling", 
@@ -778,7 +787,72 @@ elif page == "Train Model":
                                 X[col].fillna(X[col].mean(), inplace=True)
                             else:
                                 X[col].fillna(X[col].mode()[0], inplace=True)
-                    
+
+                    # Handle outliers if selected
+                    if 'handle_outliers' in locals() and handle_outliers:
+                        # Apply only to numeric columns
+                        numeric_cols = X.select_dtypes(include=['float64', 'int64']).columns
+                        outlier_stats = []
+                        rows_to_drop = None
+                        
+                        for col in numeric_cols:
+                            # Skip columns with too few unique values (likely categorical)
+                            if X[col].nunique() <= 5:
+                                continue
+                                
+                            # Calculate IQR boundaries
+                            Q1 = X[col].quantile(0.25)
+                            Q3 = X[col].quantile(0.75)
+                            IQR = Q3 - Q1
+                            
+                            # Skip if IQR is zero (constant or nearly constant values)
+                            if IQR == 0:
+                                continue
+                                
+                            lower_bound = Q1 - 1.5 * IQR
+                            upper_bound = Q3 + 1.5 * IQR
+                            
+                            # Identify outliers
+                            outlier_mask = (X[col] < lower_bound) | (X[col] > upper_bound)
+                            outlier_count = outlier_mask.sum()
+                            
+                            if outlier_count > 0:
+                                outlier_stats.append(f"{col}: {outlier_count} outliers ({outlier_count/len(X)*100:.1f}%)")
+                                
+                                # Apply the selected method
+                                if outlier_method == "Remove":
+                                    # Keep track of rows to drop (we'll drop all at once at the end)
+                                    if rows_to_drop is None:
+                                        rows_to_drop = outlier_mask
+                                    else:
+                                        rows_to_drop = rows_to_drop | outlier_mask
+                                
+                                elif outlier_method == "Impute with boundaries":
+                                    # Replace values outside boundaries
+                                    X.loc[X[col] < lower_bound, col] = lower_bound
+                                    X.loc[X[col] > upper_bound, col] = upper_bound
+                                
+                                # If method is "Keep", we don't modify the data but still report the outliers
+                        
+                        # Display summary of outliers found
+                        if outlier_stats:
+                            with st.expander("Outlier Detection Summary"):
+                                for stat in outlier_stats:
+                                    st.write(stat)
+                        
+                        # If removing outliers, drop the identified rows
+                        if outlier_method == "Remove" and rows_to_drop is not None:
+                            # Also drop corresponding rows from target variable
+                            original_len = len(X)
+                            X = X[~rows_to_drop]
+                            y = y[~rows_to_drop]
+                            st.info(f"Removed {original_len - len(X)} rows with outliers ({(original_len - len(X))/original_len*100:.2f}% of data)")
+                        elif outlier_method == "Impute with boundaries" and outlier_stats:
+                            st.info(f"Imputed outliers in {len(outlier_stats)} columns by capping at IQR boundaries")
+                        elif outlier_method == "Keep" and outlier_stats:
+                            st.info(f"Detected outliers in {len(outlier_stats)} columns but kept them unchanged")
+
+
                     # Encode categorical features
                     categorical_features = X.select_dtypes(include=['object']).columns
                     encoder_dict = {}
