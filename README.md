@@ -1,6 +1,6 @@
 # 🤖 FridAI: No-Code Predictive Modeling Tool 🛠️
 
-![FridAI Banner](images/portada.png)
+![FridAI Banner](images/baner.png)
 
 <div align="center">
   
