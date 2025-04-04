@@ -491,15 +491,13 @@ elif page == "Explore Data":
                 heatmap = sns.heatmap(
                     corr_matrix, 
                     mask=mask,
-                    annot=True,
-                    fmt='.2f',
+                    annot=False,
                     cmap=DIVERGING_PALETTE,
                     linewidths=1,
                     cbar_kws={"shrink": .8},
                     square=True,
                     ax=ax,
                     vmin=-1, vmax=1,
-                    annot_kws={"size": 10}
                 )
                 
                 ax.set_title("Correlation Matrix", fontsize=16, pad=20)
