@@ -278,7 +278,7 @@ if page == "Upload Data":
                 total_missing = missing.sum()
                 percent_missing = 100 * total_missing / (len(data) * len(data.columns))
                 ax.text(
-                    0.02, 0.95, 
+                    0.98, 0.95, 
                     f"Total missing: {total_missing}\n({percent_missing:.2f}% of all values)", 
                     transform=ax.transAxes,
                     bbox=dict(boxstyle="round,pad=0.5", facecolor='white', alpha=0.8, edgecolor='gray'),
