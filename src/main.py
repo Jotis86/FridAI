@@ -232,11 +232,59 @@ if page == "Upload Data":
                 
                 # Create a bar chart of missing values
                 fig, ax = plt.subplots(figsize=(10, 6))
-                missing.plot(kind='bar', color="#4361ee", ax=ax)
-                plt.title('Missing Values by Column', fontsize=16, pad=20)
-                plt.ylabel('Count', fontsize=12)
-                plt.xlabel('Columns', fontsize=12)
-                plt.xticks(rotation=45, ha='right')
+                
+                # Crear barras con un gradiente de color más atractivo
+                bars = ax.bar(
+                    range(len(missing)), 
+                    missing.values,
+                    color=sns.color_palette("viridis", len(missing)),
+                    edgecolor='black',
+                    linewidth=1,
+                    alpha=0.8
+                )
+                
+                # Añadir porcentaje sobre cada barra
+                for i, (col, count) in enumerate(missing.items()):
+                    percentage = 100 * count / len(data)
+                    ax.text(
+                        i, count + (max(missing) * 0.02),  # Posición ligeramente arriba de la barra
+                        f"{percentage:.1f}%", 
+                        ha='center', 
+                        va='bottom',
+                        fontweight='bold',
+                        color='#444444',
+                        fontsize=9
+                    )
+                
+                # Mejorar el diseño del gráfico
+                ax.set_title('Missing Values Distribution', fontsize=16, pad=20, fontweight='bold')
+                ax.set_ylabel('Count', fontsize=12, fontweight='bold')
+                ax.set_xlabel('Columns', fontsize=12, fontweight='bold')
+                
+                # Configurar etiquetas del eje X
+                ax.set_xticks(range(len(missing)))
+                ax.set_xticklabels(missing.index, rotation=45, ha='right', fontsize=10)
+                
+                # Añadir cuadrícula para facilitar la lectura
+                ax.yaxis.grid(True, linestyle='--', alpha=0.7)
+                
+                # Mejorar la apariencia general
+                ax.spines['top'].set_visible(False)
+                ax.spines['right'].set_visible(False)
+                ax.spines['left'].set_linewidth(0.5)
+                ax.spines['bottom'].set_linewidth(0.5)
+                
+                # Añadir un recuadro con el total de valores faltantes
+                total_missing = missing.sum()
+                percent_missing = 100 * total_missing / (len(data) * len(data.columns))
+                ax.text(
+                    0.02, 0.95, 
+                    f"Total missing: {total_missing}\n({percent_missing:.2f}% of all values)", 
+                    transform=ax.transAxes,
+                    bbox=dict(boxstyle="round,pad=0.5", facecolor='white', alpha=0.8, edgecolor='gray'),
+                    fontsize=10
+                )
+                
                 plt.tight_layout()
                 st.pyplot(fig)
                 
