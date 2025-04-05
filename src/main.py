@@ -671,6 +671,49 @@ elif page == "Train Model":
         )
         st.session_state.problem_type = problem_type
         
+        # Análisis automático del balance de clases para clasificación
+        if problem_type == "Classification":
+            # Verificar balance de clases
+            class_counts = data[target].value_counts()
+            total_samples = len(data)
+            
+            # Mostrar distribución de clases en gráfico de barras
+            fig, ax = plt.subplots(figsize=(10, 5))
+            bars = ax.bar(class_counts.index.astype(str), class_counts.values, 
+                        color=sns.color_palette("viridis", len(class_counts)))
+            
+            # Añadir porcentajes sobre las barras
+            for i, (idx, count) in enumerate(class_counts.items()):
+                percentage = count/total_samples*100
+                ax.text(i, count + (total_samples*0.01), 
+                       f"{percentage:.1f}%", 
+                       ha='center', va='bottom',
+                       fontweight='bold')
+            
+            ax.set_title("Class Distribution", fontsize=16, pad=20)
+            ax.set_xlabel("Target Classes", fontsize=12)
+            ax.set_ylabel("Count", fontsize=12)
+            plt.xticks(rotation=45 if len(class_counts) > 5 else 0)
+            plt.tight_layout()
+            st.pyplot(fig)
+            
+            # Determinar y mostrar nivel de desbalance
+            max_class = class_counts.max()
+            min_class = class_counts.min()
+            imbalance_ratio = max_class / min_class
+            
+            if imbalance_ratio > 10:
+                st.warning(f"⚠️ **Severe class imbalance detected** (ratio {imbalance_ratio:.1f}:1)")
+                st.markdown("The target variable is **severely imbalanced**, which may negatively impact model performance.")
+                handle_imbalance = st.checkbox("Apply class balancing with SMOTE (recommended)", value=True)
+            elif imbalance_ratio > 3:
+                st.warning(f"⚠️ **Moderate class imbalance detected** (ratio {imbalance_ratio:.1f}:1)")
+                st.markdown("The target variable shows **moderate imbalance**, class balancing may improve results.")
+                handle_imbalance = st.checkbox("Apply class balancing with SMOTE", value=True)
+            else:
+                st.success(f"✅ **Classes are relatively balanced** (ratio {imbalance_ratio:.1f}:1)")
+                handle_imbalance = st.checkbox("Apply class balancing with SMOTE", value=False)
+        
         # Feature selection
         all_features = [col for col in data.columns if col != target]
         features = st.multiselect("Select Features", all_features, default=all_features)
@@ -680,7 +723,7 @@ elif page == "Train Model":
         st.subheader("Data Preprocessing")
         handle_missing = st.checkbox("Handle Missing Values (replace with mean/mode)", value=True)
 
-        # Nueva sección para manejo de outliers
+        # Sección para manejo de outliers
         handle_outliers = st.checkbox("Detect Outliers (using IQR method)", value=False)
         if handle_outliers:
             outlier_method = st.radio(
@@ -787,7 +830,7 @@ elif page == "Train Model":
                                 X[col].fillna(X[col].mean(), inplace=True)
                             else:
                                 X[col].fillna(X[col].mode()[0], inplace=True)
-
+                    
                     # Handle outliers if selected
                     if 'handle_outliers' in locals() and handle_outliers:
                         # Apply only to numeric columns
@@ -851,8 +894,7 @@ elif page == "Train Model":
                             st.info(f"Imputed outliers in {len(outlier_stats)} columns by capping at IQR boundaries")
                         elif outlier_method == "Keep" and outlier_stats:
                             st.info(f"Detected outliers in {len(outlier_stats)} columns but kept them unchanged")
-
-
+                    
                     # Encode categorical features
                     categorical_features = X.select_dtypes(include=['object']).columns
                     encoder_dict = {}
@@ -875,6 +917,122 @@ elif page == "Train Model":
                     X_train, X_test, y_train, y_test = train_test_split(
                         X, y, test_size=test_size, random_state=DEFAULT_RANDOM_STATE
                     )
+                    
+                    # Aplicar balanceo de clases si está seleccionado
+                    if problem_type == "Classification" and 'handle_imbalance' in locals() and handle_imbalance:
+                        try:
+                            # Intentar importar SMOTE
+                            try:
+                                from imblearn.over_sampling import SMOTE
+                            except ImportError:
+                                st.error("❌ The 'imbalanced-learn' package is not installed")
+                                st.markdown("""
+                                ### How to fix:
+                                Install the required package with:
+                                ```
+                                pip install imbalanced-learn
+                                ```
+                                Then restart the application.
+                                """)
+                                st.warning("Proceeding with original imbalanced data.")
+                                handle_imbalance = False
+                            
+                            if handle_imbalance:
+                                # Verificar si hay suficientes muestras para SMOTE
+                                min_samples = pd.Series(y_train).value_counts().min()
+                                if min_samples < 6:
+                                    st.error("❌ Not enough samples in the minority class for SMOTE")
+                                    st.markdown(f"""
+                                    ### Problem explained:
+                                    - SMOTE requires at least 6 samples in the minority class to work
+                                    - Your minority class only has **{min_samples} samples**
+                                    - This is not enough for SMOTE to create synthetic samples effectively
+                                    
+                                    ### Possible solutions:
+                                    1. Collect more data for the minority class
+                                    2. Use a different method like class weights 
+                                    3. Try training with the imbalanced data anyway
+                                    """)
+                                    st.warning("Proceeding with original imbalanced data.")
+                                else:
+                                    # Verificar si hay características no numéricas o constantes
+                                    non_numeric = [col for col in X_train.columns if not pd.api.types.is_numeric_dtype(X_train[col])]
+                                    
+                                    if non_numeric:
+                                        st.error(f"❌ Non-numeric features detected: {', '.join(non_numeric[:3])}{'...' if len(non_numeric) > 3 else ''}")
+                                        st.markdown("""
+                                        ### Problem explained:
+                                        SMOTE requires all features to be numeric. Your dataset contains non-numeric features.
+                                        
+                                        ### How to fix:
+                                        Ensure all categorical features are properly encoded before applying SMOTE.
+                                        """)
+                                        st.warning("Proceeding with original imbalanced data.")
+                                    else:
+                                        # Aplicar SMOTE
+                                        try:
+                                            smote = SMOTE(random_state=DEFAULT_RANDOM_STATE)
+                                            X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
+                                            
+                                            # Actualizar datos
+                                            X_train = X_train_resampled
+                                            y_train = y_train_resampled
+                                            
+                                            # Mostrar mensaje de éxito con detalles
+                                            st.success(f"✅ SMOTE applied successfully! Training data now has {len(X_train)} balanced samples.")
+                                            
+                                        except Exception as e:
+                                            error_msg = str(e).lower()
+                                            st.error(f"❌ Error applying SMOTE: {str(e)}")
+                                            
+                                            # Proporcionar explicaciones específicas para errores comunes
+                                            if "memory" in error_msg:
+                                                st.markdown("""
+                                                ### Memory Error Explained:
+                                                SMOTE is computationally intensive and requires creating a distance matrix between samples. 
+                                                Your dataset might be too large for your available memory.
+                                                
+                                                ### Possible solutions:
+                                                1. Reduce the number of features (try feature selection)
+                                                2. Use a smaller sample of your data
+                                                3. Increase available RAM or use a more powerful machine
+                                                """)
+                                            elif "neighbors" in error_msg or "samples" in error_msg:
+                                                st.markdown("""
+                                                ### Neighbor Samples Error Explained:
+                                                SMOTE works by finding nearest neighbors, but there's an issue with the neighborhood configuration
+                                                or sample distribution.
+                                                
+                                                ### Possible solutions:
+                                                1. Ensure minority class has sufficient examples (recommended: >10 samples)
+                                                2. Check for outliers or unusual patterns in your data
+                                                """)
+                                            elif "shape" in error_msg or "dimension" in error_msg:
+                                                st.markdown("""
+                                                ### Data Shape Error Explained:
+                                                There's an issue with the dimensions or format of your data.
+                                                
+                                                ### Possible solutions:
+                                                1. Ensure all features are properly formatted as numbers
+                                                2. Remove any features with constant values
+                                                3. Check for NaN or Infinity values in your data
+                                                """)
+                                            else:
+                                                st.markdown("""
+                                                ### Unknown Error:
+                                                SMOTE encountered an unexpected error that couldn't be automatically diagnosed.
+                                                
+                                                ### Possible solutions:
+                                                1. Check data preprocessing steps
+                                                2. Ensure all values are finite and there are no NaN values
+                                                3. Try with a simpler subset of features
+                                                """)
+                                            
+                                            st.warning("Proceeding with original imbalanced data.")
+                        
+                        except Exception as general_e:
+                            st.error(f"❌ Unexpected error during balancing: {str(general_e)}")
+                            st.warning("Proceeding with original data.")
                     
                     # Apply scaling if selected
                     scaler = None
