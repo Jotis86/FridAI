@@ -1092,6 +1092,8 @@ elif page == "Train Model":
                     st.error(f"Error training model: {e}")
                     st.error(f"Exception details: {str(e)}")
 
+
+
 # Download Model page
 elif page == "Download Model":
     st.title("Download Trained Model")
