@@ -641,6 +641,8 @@ elif page == "Explore Data":
             else:
                 st.warning("Need at least 2 numeric columns for scatter plot.")
 
+
+
 # Train Model page
 elif page == "Train Model":
     st.title("Train Predictive Model")
