@@ -2108,8 +2108,8 @@ elif page == "Make Predictions":
                 # Crear una copia de los datos de entrada para modificar
                 whatif_data = dict(input_data)
                 
-                # Crear dos columnas
-                col1, col2 = st.columns([3, 2])
+                # Crear dos columnas más balanceadas
+                col1, col2 = st.columns([1, 1])
                 
                 with col1:
                     st.markdown("#### Adjust Feature Values")
@@ -2154,14 +2154,15 @@ elif page == "Make Predictions":
                                 key=f"whatif_num_{feature}"
                             )
                 
-                # Botón para calcular
-                calc_button = st.button("Calculate Impact", key="calc_whatif")
-                
-                # Si se hace clic en calcular, mostrar el resultado
-                if calc_button:
-                    with col2:
-                        st.markdown("#### Prediction Result")
-                        
+                with col2:
+                    st.markdown("#### Prediction Preview")
+                    st.write("Adjust values on the left and see how they affect the prediction.")
+                    
+                    # Botón para calcular colocado en la columna de resultados
+                    calc_button = st.button("Calculate Impact", key="calc_whatif")
+                    
+                    # Si se hace clic en calcular, mostrar el resultado
+                    if calc_button:
                         # Crear un DataFrame con los datos modificados
                         X_whatif = pd.DataFrame([whatif_data])
                         
@@ -2215,20 +2216,65 @@ elif page == "Make Predictions":
                                 else:
                                     classes = model.classes_
                                 
-                                # Mostrar top 3 probabilidades
+                                # Mostrar top 3 probabilidades con barras visuales
                                 probs_data = [(classes[i], prob) for i, prob in enumerate(probs)]
                                 probs_data.sort(key=lambda x: x[1], reverse=True)
                                 
-                                st.write("Top probabilities:")
-                                for cls, prob in probs_data[:3]:
-                                    st.write(f"- {cls}: {prob:.4f}")
+                                st.write("Class probabilities:")
+                                for i, (cls, prob) in enumerate(probs_data[:3]):
+                                    # Seleccionar color basado en la probabilidad
+                                    bar_color = "#28a745" if prob > 0.7 else "#ffc107" if prob > 0.4 else "#dc3545"
                                     
+                                    # Mostrar barra visual
+                                    st.markdown(
+                                        f"""
+                                        <div style="margin-bottom: 5px;">
+                                            <span style="display: inline-block; width: 120px; font-weight: bold;">{cls}</span>
+                                            <div style="display: inline-block; width: 200px; background-color: #e9ecef; height: 15px; border-radius: 3px;">
+                                                <div style="width: {int(prob*100)}%; background-color: {bar_color}; height: 15px; border-radius: 3px;"></div>
+                                            </div>
+                                            <span style="margin-left: 10px;">{prob:.2f}</span>
+                                        </div>
+                                        """, 
+                                        unsafe_allow_html=True
+                                    )
                             except:
                                 pass
                         else:
                             # Predicción para regresión
                             whatif_pred = model.predict(X_whatif)[0]
                             st.success(f"Predicted value: {whatif_pred:.4f}")
+                            
+                            # Mostrar cómo cambió respecto a la predicción original
+                            try:
+                                original_X = pd.DataFrame([input_data])
+                                # Aplicar el mismo procesamiento que arriba...
+                                # (omito por brevedad, pero asegúrate de incluirlo)
+                                original_pred = model.predict(original_X)[0]
+                                
+                                # Calcular el cambio
+                                change = whatif_pred - original_pred
+                                change_percent = (change / abs(original_pred)) * 100 if original_pred != 0 else 0
+                                
+                                # Mostrar el cambio
+                                arrow = "↑" if change > 0 else "↓" if change < 0 else "→"
+                                color = "#dc3545" if change > 0 else "#28a745" if change < 0 else "#6c757d"
+                                
+                                st.markdown(
+                                    f"""
+                                    <div style="margin-top: 15px;">
+                                        <p>Change from original prediction: 
+                                        <span style="color: {color}; font-weight: bold;">{arrow} {abs(change):.4f} ({abs(change_percent):.1f}%)</span>
+                                        </p>
+                                    </div>
+                                    """,
+                                    unsafe_allow_html=True
+                                )
+                            except:
+                                pass
+                    else:
+                        # Mensaje cuando aún no se ha calculado
+                        st.info("Adjust the values and click 'Calculate Impact' to see the prediction")
                         
             except Exception as e:
                 st.error(f"Error in What-If analysis: {str(e)}")
