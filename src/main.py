@@ -467,9 +467,13 @@ if page == "Upload Data":
     - 📊 **Upload your data** and get immediate insights
     - 📈 **Explore and visualize** your data through various charts
     - 🧠 **Train powerful machine learning models** with a few clicks
+    - 🤖 **Automatically balance imbalanced classes** with SMOTE
+    - 🔄 **Validate with cross-validation** for more robust performance metrics
     - 🎛️ **Customize parameters** to improve model performance
     - 💾 **Download your trained model** for use in other applications
+    - 📓 **Export to Jupyter Notebook** to get reproducible Python code
     - 🔮 **Make predictions** on new data without coding
+    - 🧪 **What-If analysis** to understand how features impact predictions
 
     Simply upload your CSV file to get started! 🚀
     """)
