@@ -1021,6 +1021,45 @@ elif page == "Train Model":
             index=0 if default_problem == "Classification" else 1
         )
         st.session_state.problem_type = problem_type
+
+        # Añadir cheatsheet de algoritmos
+        if st.checkbox("Show ML Algorithm Guide", key="show_algo_guide"):
+            st.markdown("""
+            ### 🧠 Machine Learning Algorithm Cheatsheet
+            
+            | Problem Type | Algorithm | Good For |
+            |--------------|-----------|----------|
+            | **Classification** | Random Forest | ✅ Handles outliers<br>✅ Feature importance<br>✅ Non-linear relationships |
+            | | Logistic Regression | ✅ Simple, interpretable<br>✅ Works well with linearly separable data<br>✅ Feature coefficients |
+            | | SVM | ✅ High-dimensional spaces<br>✅ Works well with clear margin of separation<br>✅ Memory efficient |
+            | | Gradient Boosting | ✅ High performance<br>✅ Handles mixed data well<br>✅ Often wins competitions |
+            | **Regression** | Linear Regression | ✅ Simple, interpretable<br>✅ Feature coefficients<br>✅ Works well with linear relationships |
+            | | Random Forest | ✅ Handles outliers<br>✅ Non-linear relationships<br>✅ Less prone to overfitting |
+            | | SVR | ✅ Robust to outliers<br>✅ Good with high-dimensional data<br>✅ Memory efficient |
+            | | Gradient Boosting | ✅ High performance<br>✅ Handles various data types<br>✅ Feature interactions |
+            """)
+            
+            # Añadir consejos para la selección de algoritmos según el tipo de problema
+            if problem_type == "Classification":
+                st.info("""
+                **Tips for Classification Problems:**
+                
+                1. **Start simple**: Try Logistic Regression first to establish a baseline
+                2. **For complex relationships**: Random Forest or Gradient Boosting usually perform well
+                3. **For high-dimensional data**: SVM can be effective
+                4. **For interpretability**: Use Logistic Regression or extract feature importance from Random Forest
+                """)
+            else:  # Regression
+                st.info("""
+                **Tips for Regression Problems:**
+                
+                1. **Start simple**: Try Linear Regression first to establish a baseline
+                2. **For complex relationships**: Random Forest or Gradient Boosting usually excel
+                3. **For data with outliers**: SVR or Random Forest are more robust
+                4. **For interpretability**: Use Linear Regression or extract feature importance from tree-based models
+                """)
+
+
         
         # Análisis automático del balance de clases para clasificación
         if problem_type == "Classification":
