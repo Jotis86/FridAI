@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, cross_val_score, KFold, StratifiedKFold
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler, LabelEncoder, OneHotEncoder
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor, GradientBoostingClassifier, GradientBoostingRegressor
 from sklearn.linear_model import LogisticRegression, LinearRegression
@@ -796,6 +796,12 @@ elif page == "Train Model":
             encoding_option = "Label Encoding"  # Default if no categorical features
         
         test_size = st.slider("Test Set Size (%)", 10, 50, int(DEFAULT_TEST_SIZE*100)) / 100
+
+        # Cross-validation option
+        use_cv = st.checkbox("Use Cross-Validation", value=False)
+        if use_cv:
+            n_folds = st.slider("Number of Folds", 3, 10, 5)
+            st.info("💡 Cross-validation provides more robust model evaluation by training and testing on multiple data splits.")
         
         # Model selection
         st.subheader("Model Selection")
@@ -1108,11 +1114,69 @@ elif page == "Train Model":
                             elif model_type == "Gradient Boosting":
                                 model = GradientBoostingClassifier(random_state=DEFAULT_RANDOM_STATE, **model_params)
                             
-                            model.fit(X_train, y_train)
-                            y_pred = model.predict(X_test)
-                            accuracy = accuracy_score(y_test, y_pred)
-                            
-                            st.success(f"Model trained successfully! Accuracy: {accuracy:.4f}")
+                            # Use cross-validation if selected
+                            if 'use_cv' in locals() and use_cv:
+                                with st.spinner('Performing cross-validation...'):
+                                    # Use StratifiedKFold for classification to maintain class distribution
+                                    cv = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=DEFAULT_RANDOM_STATE)
+                                    
+                                    # Get cross-validation scores
+                                    cv_scores = cross_val_score(model, X, y, cv=cv, scoring='accuracy')
+                                    
+                                    # Train final model on all data
+                                    model.fit(X, y)
+                                    
+                                    # Display cross-validation results
+                                    st.success(f"Cross-validation completed with {n_folds} folds!")
+                                    
+                                    # Show CV metrics
+                                    st.subheader("Cross-Validation Results")
+                                    col1, col2, col3 = st.columns(3)
+                                    with col1:
+                                        st.metric("Mean Accuracy", f"{cv_scores.mean():.4f}")
+                                    with col2:
+                                        st.metric("Min Accuracy", f"{cv_scores.min():.4f}")
+                                    with col3:
+                                        st.metric("Max Accuracy", f"{cv_scores.max():.4f}")
+                                    
+                                    # Visualize CV scores
+                                    fig, ax = plt.subplots(figsize=(10, 5))
+                                    ax.bar(range(1, n_folds+1), cv_scores, color=sns.color_palette("viridis", n_folds))
+                                    ax.set_xlabel("Fold", fontsize=12)
+                                    ax.set_ylabel("Accuracy", fontsize=12)
+                                    ax.set_title(f"Cross-Validation Accuracy Scores", fontsize=16)
+                                    ax.axhline(y=cv_scores.mean(), color='red', linestyle='--', label=f'Mean: {cv_scores.mean():.4f}')
+                                    
+                                    # Añadir valores sobre las barras
+                                    for i, score in enumerate(cv_scores):
+                                        ax.text(i+1, score+0.01, f"{score:.4f}", ha='center', fontweight='bold')
+                                    
+                                    ax.legend()
+                                    ax.set_xticks(range(1, n_folds+1))
+                                    ax.spines['top'].set_visible(False)
+                                    ax.spines['right'].set_visible(False)
+                                    st.pyplot(fig)
+                                    
+                                    # Still perform train/test split for visualizations
+                                    X_train, X_test, y_train, y_test = train_test_split(
+                                        X, y, test_size=test_size, random_state=DEFAULT_RANDOM_STATE
+                                    )
+                                    # Apply the same preprocessing to test set that we did to all data
+                                    if scaling_option != "None" and scaler is not None:
+                                        X_test = scaler.transform(X_test)
+                                    
+                                    y_pred = model.predict(X_test)
+                                    accuracy = accuracy_score(y_test, y_pred)
+                                    
+                                    st.info(f"For visualization purposes, a {test_size*100:.0f}% test set was used with accuracy: {accuracy:.4f}")
+                                
+                            else:
+                                # Standard train-test approach
+                                model.fit(X_train, y_train)
+                                y_pred = model.predict(X_test)
+                                accuracy = accuracy_score(y_test, y_pred)
+                                
+                                st.success(f"Model trained successfully! Accuracy: {accuracy:.4f}")
                             
                             # Display confusion matrix
                             st.subheader("Confusion Matrix")
@@ -1172,12 +1236,106 @@ elif page == "Train Model":
                             elif model_type == "Gradient Boosting":
                                 model = GradientBoostingRegressor(random_state=DEFAULT_RANDOM_STATE, **model_params)
                             
-                            model.fit(X_train, y_train)
-                            y_pred = model.predict(X_test)
-                            mse = mean_squared_error(y_test, y_pred)
-                            r2 = r2_score(y_test, y_pred)
-                            
-                            st.success(f"Model trained successfully! MSE: {mse:.4f}, R²: {r2:.4f}")
+                            # Use cross-validation if selected
+                            if 'use_cv' in locals() and use_cv:
+                                with st.spinner('Performing cross-validation...'):
+                                    # Use KFold for regression
+                                    cv = KFold(n_splits=n_folds, shuffle=True, random_state=DEFAULT_RANDOM_STATE)
+                                    
+                                    # Get cross-validation scores for R2 and MSE
+                                    r2_scores = cross_val_score(model, X, y, cv=cv, scoring='r2')
+                                    neg_mse_scores = cross_val_score(model, X, y, cv=cv, scoring='neg_mean_squared_error')
+                                    mse_scores = -neg_mse_scores  # Convert to positive MSE
+                                    
+                                    # Train final model on all data
+                                    model.fit(X, y)
+                                    
+                                    # Display cross-validation results
+                                    st.success(f"Cross-validation completed with {n_folds} folds!")
+                                    
+                                    # Show CV metrics
+                                    st.subheader("Cross-Validation Results")
+                                    
+                                    # R2 metrics
+                                    st.markdown("#### R² Scores")
+                                    col1, col2, col3 = st.columns(3)
+                                    with col1:
+                                        st.metric("Mean R²", f"{r2_scores.mean():.4f}")
+                                    with col2:
+                                        st.metric("Min R²", f"{r2_scores.min():.4f}")
+                                    with col3:
+                                        st.metric("Max R²", f"{r2_scores.max():.4f}")
+                                    
+                                    # MSE metrics
+                                    st.markdown("#### MSE Scores")
+                                    col1, col2, col3 = st.columns(3)
+                                    with col1:
+                                        st.metric("Mean MSE", f"{mse_scores.mean():.4f}")
+                                    with col2:
+                                        st.metric("Min MSE", f"{mse_scores.min():.4f}")
+                                    with col3:
+                                        st.metric("Max MSE", f"{mse_scores.max():.4f}")
+                                    
+                                    # Visualize CV scores (R2)
+                                    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 10))
+                                    
+                                    # R2 plot
+                                    ax1.bar(range(1, n_folds+1), r2_scores, color=sns.color_palette("viridis", n_folds))
+                                    ax1.set_xlabel("Fold", fontsize=12)
+                                    ax1.set_ylabel("R²", fontsize=12)
+                                    ax1.set_title("Cross-Validation R² Scores", fontsize=16)
+                                    ax1.axhline(y=r2_scores.mean(), color='red', linestyle='--', label=f'Mean: {r2_scores.mean():.4f}')
+                                    
+                                    # Añadir valores sobre las barras (R2)
+                                    for i, score in enumerate(r2_scores):
+                                        ax1.text(i+1, max(0.01, score+0.05), f"{score:.4f}", ha='center', fontweight='bold')
+                                    
+                                    ax1.legend()
+                                    ax1.set_xticks(range(1, n_folds+1))
+                                    ax1.spines['top'].set_visible(False)
+                                    ax1.spines['right'].set_visible(False)
+                                    
+                                    # MSE plot
+                                    ax2.bar(range(1, n_folds+1), mse_scores, color=sns.color_palette("viridis", n_folds))
+                                    ax2.set_xlabel("Fold", fontsize=12)
+                                    ax2.set_ylabel("MSE", fontsize=12)
+                                    ax2.set_title("Cross-Validation MSE Scores", fontsize=16)
+                                    ax2.axhline(y=mse_scores.mean(), color='red', linestyle='--', label=f'Mean: {mse_scores.mean():.4f}')
+                                    
+                                    # Añadir valores sobre las barras (MSE)
+                                    for i, score in enumerate(mse_scores):
+                                        ax2.text(i+1, score+mse_scores.mean()*0.05, f"{score:.4f}", ha='center', fontweight='bold')
+                                    
+                                    ax2.legend()
+                                    ax2.set_xticks(range(1, n_folds+1))
+                                    ax2.spines['top'].set_visible(False)
+                                    ax2.spines['right'].set_visible(False)
+                                    
+                                    plt.tight_layout()
+                                    st.pyplot(fig)
+                                    
+                                    # Still perform train/test split for visualizations
+                                    X_train, X_test, y_train, y_test = train_test_split(
+                                        X, y, test_size=test_size, random_state=DEFAULT_RANDOM_STATE
+                                    )
+                                    # Apply the same preprocessing to test set that we did to all data
+                                    if scaling_option != "None" and scaler is not None:
+                                        X_test = scaler.transform(X_test)
+                                    
+                                    y_pred = model.predict(X_test)
+                                    mse = mean_squared_error(y_test, y_pred)
+                                    r2 = r2_score(y_test, y_pred)
+                                    
+                                    st.info(f"For visualization purposes, a {test_size*100:.0f}% test set was used with MSE: {mse:.4f}, R²: {r2:.4f}")
+                                
+                            else:
+                                # Standard train-test approach
+                                model.fit(X_train, y_train)
+                                y_pred = model.predict(X_test)
+                                mse = mean_squared_error(y_test, y_pred)
+                                r2 = r2_score(y_test, y_pred)
+                                
+                                st.success(f"Model trained successfully! MSE: {mse:.4f}, R²: {r2:.4f}")
                             
                             # Plot actual vs predicted
                             fig, ax = plt.subplots(figsize=(PLOT_WIDTH, PLOT_HEIGHT))
