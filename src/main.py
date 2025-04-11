@@ -2103,170 +2103,133 @@ elif page == "Make Predictions":
         st.subheader("What-If Analysis")
         st.info("Explore how changing feature values affects the prediction outcome.")
         
-        # Variables para almacenar los valores originales y modificados
-        if 'original_values' not in st.session_state:
-            st.session_state.original_values = {}
-            for feature in model_info['features']:
-                # Valores predeterminados razonables según el tipo de datos
-                if st.session_state.data is not None and feature in st.session_state.data.columns:
-                    if pd.api.types.is_numeric_dtype(st.session_state.data[feature]):
-                        st.session_state.original_values[feature] = float(st.session_state.data[feature].median())
-                    else:
-                        st.session_state.original_values[feature] = st.session_state.data[feature].mode()[0]
-                else:
-                    st.session_state.original_values[feature] = 0  # Default fallback
-        
         if st.checkbox("Enable What-If Analysis", key="enable_whatif"):
-            # Crear entrada para cada característica
-            modified_values = {}
-            
-            col1, col2 = st.columns([3, 2])
-            
-            with col1:
-                st.markdown("#### Adjust Feature Values")
-                for feature in model_info['features']:
-                    # Crear widgets de entrada apropiados según el tipo de datos
-                    if st.session_state.data is not None and feature in st.session_state.data.columns:
-                        if pd.api.types.is_numeric_dtype(st.session_state.data[feature]):
-                            min_val = float(st.session_state.data[feature].min())
-                            max_val = float(st.session_state.data[feature].max())
-                            step = (max_val - min_val) / 100
-                            modified_values[feature] = st.slider(
-                                feature, 
-                                min_val, max_val, 
-                                st.session_state.original_values[feature],
-                                step=max(step, 0.001),
-                                key=f"whatif_{feature}"
-                            )
-                        else:
-                            unique_values = st.session_state.data[feature].unique().tolist()
-                            modified_values[feature] = st.selectbox(
-                                feature,
-                                unique_values,
-                                index=unique_values.index(st.session_state.original_values[feature]) 
-                                      if st.session_state.original_values[feature] in unique_values else 0,
-                                key=f"whatif_select_{feature}"
-                            )
-                    else:
-                        modified_values[feature] = st.number_input(
-                            feature, value=0.0, key=f"whatif_num_{feature}"
-                        )
-            
-            # Preparar datos para predicción
-            X_whatif = pd.DataFrame([modified_values])
-            
-            with col2:
-                st.markdown("#### Prediction Impact")
+            try:
+                # Crear una copia de los datos de entrada para modificar
+                whatif_data = dict(input_data)
                 
-                if st.button("Calculate Impact", key="calc_whatif"):
-                    try:
-                        # Aplicar mismo preprocesamiento que la predicción normal
+                # Crear dos columnas
+                col1, col2 = st.columns([3, 2])
+                
+                with col1:
+                    st.markdown("#### Adjust Feature Values")
+                    for feature in model_info['features']:
+                        # Modificar cada característica según su tipo
+                        if st.session_state.data is not None and feature in st.session_state.data.columns:
+                            if pd.api.types.is_numeric_dtype(st.session_state.data[feature]):
+                                # Para valores numéricos usar slider
+                                min_val = float(st.session_state.data[feature].min())
+                                max_val = float(st.session_state.data[feature].max())
+                                default_val = float(input_data[feature])
+                                step = (max_val - min_val) / 100
+                                
+                                whatif_data[feature] = st.slider(
+                                    f"{feature}", 
+                                    min_value=min_val,
+                                    max_value=max_val,
+                                    value=default_val,
+                                    step=max(step, 0.001),
+                                    key=f"whatif_{feature}"
+                                )
+                            else:
+                                # Para categóricos usar selectbox
+                                unique_values = st.session_state.data[feature].dropna().unique().tolist()
+                                current_index = 0
+                                try:
+                                    current_index = unique_values.index(input_data[feature])
+                                except:
+                                    pass
+                                
+                                whatif_data[feature] = st.selectbox(
+                                    f"{feature}",
+                                    options=unique_values,
+                                    index=current_index,
+                                    key=f"whatif_sel_{feature}"
+                                )
+                        else:
+                            # Si no hay información del tipo, usar number_input
+                            whatif_data[feature] = st.number_input(
+                                f"{feature}", 
+                                value=float(input_data[feature]),
+                                key=f"whatif_num_{feature}"
+                            )
+                
+                # Botón para calcular
+                calc_button = st.button("Calculate Impact", key="calc_whatif")
+                
+                # Si se hace clic en calcular, mostrar el resultado
+                if calc_button:
+                    with col2:
+                        st.markdown("#### Prediction Result")
+                        
+                        # Crear un DataFrame con los datos modificados
+                        X_whatif = pd.DataFrame([whatif_data])
+                        
+                        # Preprocesamiento igual al de predicción normal (simplificado)
                         categorical_features = X_whatif.select_dtypes(include=['object']).columns
                         
-                        # Apply encoders
+                        # Aplicar encoders
                         for col in categorical_features:
                             if col in model_info['encoders']:
                                 encoder = model_info['encoders'][col]
                                 try:
                                     X_whatif[col] = encoder.transform(X_whatif[col])
                                 except:
-                                    st.warning(f"Value for {col} not seen during training.")
-                                    most_frequent = encoder.transform([encoder.classes_[0]])[0]
-                                    X_whatif[col] = most_frequent
+                                    # Si falla, usar un valor seguro (primera clase)
+                                    X_whatif[col] = encoder.transform([encoder.classes_[0]])[0]
                         
-                        # Handle one-hot encoding if used
+                        # One-hot encoding si se usó
                         if model_info['encoding_method'] == "One-Hot Encoding" and len(categorical_features) > 0:
-                            # Get original encoded columns
                             orig_cols = model_info['original_columns']
-                            
-                            # Apply one-hot encoding
                             X_whatif = pd.get_dummies(X_whatif)
-                            
-                            # Ensure all required columns exist
+                            # Asegurar que tenga todas las columnas necesarias
                             for col in orig_cols:
                                 if col not in X_whatif.columns:
                                     X_whatif[col] = 0
-                            
-                            # Keep only columns used in training
                             X_whatif = X_whatif[orig_cols]
                         
-                        # Apply scaling if used
+                        # Aplicar scaling si se usó
                         if model_info['scaler'] is not None:
                             X_whatif = model_info['scaler'].transform(X_whatif)
                         
-                        # Make prediction
+                        # Obtener predicción
                         model = model_info['model']
                         
                         if model_info['problem_type'] == "Classification":
-                            # Get prediction
-                            whatif_prediction = model.predict(X_whatif)[0]
+                            # Predicción para clasificación
+                            whatif_pred = model.predict(X_whatif)[0]
                             
-                            # Convert back to original category if needed
+                            # Convertir de vuelta a la categoría original si es necesario
                             if model_info['target_encoder'] is not None:
-                                whatif_prediction = model_info['target_encoder'].inverse_transform([whatif_prediction])[0]
+                                whatif_pred = model_info['target_encoder'].inverse_transform([whatif_pred])[0]
                             
-                            # Get probability if available
+                            # Mostrar resultado
+                            st.success(f"Predicted class: {whatif_pred}")
+                            
+                            # Intentar obtener probabilidades si están disponibles
                             try:
-                                proba = model.predict_proba(X_whatif)[0]
-                                top_class_idx = np.argmax(proba)
+                                probs = model.predict_proba(X_whatif)[0]
                                 
                                 if model_info['target_encoder'] is not None:
-                                    class_names = model_info['target_encoder'].classes_
-                                    predicted_class = class_names[top_class_idx]
+                                    classes = model_info['target_encoder'].classes_
                                 else:
-                                    class_names = model.classes_
-                                    predicted_class = class_names[top_class_idx]
+                                    classes = model.classes_
                                 
-                                st.markdown(
-                                    f"""
-                                    <div style="background-color: #f0f9ff; padding: 15px; border-radius: 8px; margin-top: 20px;">
-                                        <h4 style="color: #0066cc;">What-If Prediction</h4>
-                                        <p style="font-size: 18px; font-weight: bold;">{predicted_class}</p>
-                                        <p>Confidence: <b>{proba[top_class_idx]:.2%}</b></p>
-                                    </div>
-                                    """, 
-                                    unsafe_allow_html=True
-                                )
+                                # Mostrar top 3 probabilidades
+                                probs_data = [(classes[i], prob) for i, prob in enumerate(probs)]
+                                probs_data.sort(key=lambda x: x[1], reverse=True)
                                 
-                                # Si hay más de 2 clases, mostrar top 3
-                                if len(class_names) > 2:
-                                    # Obtener índices de top 3 clases
-                                    top_indices = np.argsort(proba)[-3:][::-1]
-                                    for idx in top_indices:
-                                        if model_info['target_encoder'] is not None:
-                                            class_name = class_names[idx]
-                                        else:
-                                            class_name = class_names[idx]
-                                        prob_value = proba[idx]
-                                        
-                                        bar_color = "#28a745" if prob_value > 0.7 else "#ffc107" if prob_value > 0.3 else "#dc3545"
-                                        bar_width = int(prob_value * 100)
-                                        
-                                        st.markdown(
-                                            f"""
-                                            <div style="margin-bottom: 5px;">
-                                                <span style="display: inline-block; width: 120px;">{class_name}</span>
-                                                <div style="display: inline-block; width: 200px; background-color: #e9ecef; height: 20px; border-radius: 3px;">
-                                                    <div style="width: {bar_width}%; background-color: {bar_color}; height: 20px; border-radius: 3px;"></div>
-                                                </div>
-                                                <span style="margin-left: 10px; font-weight: bold;">{prob_value:.2%}</span>
-                                            </div>
-                                            """,
-                                            unsafe_allow_html=True
-                                        )
+                                st.write("Top probabilities:")
+                                for cls, prob in probs_data[:3]:
+                                    st.write(f"- {cls}: {prob:.4f}")
+                                    
                             except:
-                                st.success(f"What-If Predicted class: {whatif_prediction}")
+                                pass
                         else:
-                            # Regression prediction
-                            whatif_prediction = model.predict(X_whatif)[0]
-                            st.markdown(
-                                f"""
-                                <div style="background-color: #f0f9ff; padding: 15px; border-radius: 8px; margin-top: 20px;">
-                                    <h4 style="color: #0066cc;">What-If Prediction</h4>
-                                    <p style="font-size: 18px; font-weight: bold;">{whatif_prediction:.4f}</p>
-                                </div>
-                                """, 
-                                unsafe_allow_html=True
-                            )
-                    except Exception as e:
-                        st.error(f"Error in What-If analysis: {str(e)}")
+                            # Predicción para regresión
+                            whatif_pred = model.predict(X_whatif)[0]
+                            st.success(f"Predicted value: {whatif_pred:.4f}")
+                        
+            except Exception as e:
+                st.error(f"Error in What-If analysis: {str(e)}")
+                st.error("Please try with different values or check your data")
