@@ -2158,6 +2158,88 @@ elif page == "Make Predictions":
                 st.error(f"Error making prediction: {e}")
                 st.error(f"Exception details: {str(e)}")
 
+        # Input Data Quality Check 
+        st.subheader("Input Data Quality Check")
+        if st.checkbox("Check if input values are unusual", key="check_outliers"):
+            try:
+                # Crear función para detectar outliers
+                def is_outlier(value, feature_name):
+                    """Verifica si un valor es un outlier basado en el rango IQR de los datos de entrenamiento"""
+                    if feature_name not in st.session_state.data.columns:
+                        return False
+                        
+                    # Solo verificar features numéricas
+                    if not pd.api.types.is_numeric_dtype(st.session_state.data[feature_name]):
+                        return False
+                        
+                    # Calcular límites IQR
+                    Q1 = st.session_state.data[feature_name].quantile(0.25)
+                    Q3 = st.session_state.data[feature_name].quantile(0.75)
+                    IQR = Q3 - Q1
+                    
+                    if IQR == 0:  # Evitar división por cero
+                        return False
+                        
+                    lower_bound = Q1 - 1.5 * IQR
+                    upper_bound = Q3 + 1.5 * IQR
+                    
+                    # Verificar si está fuera de límites
+                    return value < lower_bound or value > upper_bound
+                
+                # Analizar valores de entrada
+                outlier_features = []
+                unusual_values = {}
+                
+                for feature, value in input_data.items():
+                    if pd.api.types.is_numeric_dtype(type(value)):
+                        if is_outlier(value, feature):
+                            outlier_features.append(feature)
+                            # Calcular estadísticas para contextualizar
+                            min_val = st.session_state.data[feature].min()
+                            max_val = st.session_state.data[feature].max()
+                            mean_val = st.session_state.data[feature].mean()
+                            median_val = st.session_state.data[feature].median()
+                            
+                            unusual_values[feature] = {
+                                "value": value,
+                                "min": min_val,
+                                "max": max_val,
+                                "mean": mean_val,
+                                "median": median_val
+                            }
+                
+                # Mostrar resultados
+                if outlier_features:
+                    st.warning(f"⚠️ Detected {len(outlier_features)} unusual input values that may affect prediction reliability.")
+                    
+                    # Crear tabla de valores inusuales
+                    outlier_data = []
+                    for feature in outlier_features:
+                        stats = unusual_values[feature]
+                        outlier_data.append({
+                            "Feature": feature,
+                            "Your Value": f"{stats['value']:.2f}",
+                            "Normal Range": f"{stats['min']:.2f} - {stats['max']:.2f}",
+                            "Dataset Mean": f"{stats['mean']:.2f}",
+                            "Dataset Median": f"{stats['median']:.2f}"
+                        })
+                    
+                    # Mostrar tabla de valores inusuales
+                    st.table(pd.DataFrame(outlier_data))
+                    
+                    st.info("""
+                    **What does this mean?**
+                    - Values outside the normal range seen during training may lead to less reliable predictions
+                    - The model has not been trained with examples similar to these unusual values
+                    - Consider using values closer to the typical range for more reliable results
+                    """)
+                else:
+                    st.success("✅ All input values are within the normal ranges seen during training.")
+            
+            except Exception as e:
+                st.error(f"Error checking outliers: {str(e)}")
+            
+
         # What-If Analysis (nueva sección después de la predicción individual)
         st.subheader("What-If Analysis")
         st.info("Explore how changing feature values affects the prediction outcome.")
@@ -2339,83 +2421,4 @@ elif page == "Make Predictions":
                 st.error(f"Error in What-If analysis: {str(e)}")
                 st.error("Please try with different values or check your data")
 
-        # Input Data Quality Check 
-        st.subheader("Input Data Quality Check")
-        if st.checkbox("Check if input values are unusual", key="check_outliers"):
-            try:
-                # Crear función para detectar outliers
-                def is_outlier(value, feature_name):
-                    """Verifica si un valor es un outlier basado en el rango IQR de los datos de entrenamiento"""
-                    if feature_name not in st.session_state.data.columns:
-                        return False
-                        
-                    # Solo verificar features numéricas
-                    if not pd.api.types.is_numeric_dtype(st.session_state.data[feature_name]):
-                        return False
-                        
-                    # Calcular límites IQR
-                    Q1 = st.session_state.data[feature_name].quantile(0.25)
-                    Q3 = st.session_state.data[feature_name].quantile(0.75)
-                    IQR = Q3 - Q1
-                    
-                    if IQR == 0:  # Evitar división por cero
-                        return False
-                        
-                    lower_bound = Q1 - 1.5 * IQR
-                    upper_bound = Q3 + 1.5 * IQR
-                    
-                    # Verificar si está fuera de límites
-                    return value < lower_bound or value > upper_bound
-                
-                # Analizar valores de entrada
-                outlier_features = []
-                unusual_values = {}
-                
-                for feature, value in input_data.items():
-                    if pd.api.types.is_numeric_dtype(type(value)):
-                        if is_outlier(value, feature):
-                            outlier_features.append(feature)
-                            # Calcular estadísticas para contextualizar
-                            min_val = st.session_state.data[feature].min()
-                            max_val = st.session_state.data[feature].max()
-                            mean_val = st.session_state.data[feature].mean()
-                            median_val = st.session_state.data[feature].median()
-                            
-                            unusual_values[feature] = {
-                                "value": value,
-                                "min": min_val,
-                                "max": max_val,
-                                "mean": mean_val,
-                                "median": median_val
-                            }
-                
-                # Mostrar resultados
-                if outlier_features:
-                    st.warning(f"⚠️ Detected {len(outlier_features)} unusual input values that may affect prediction reliability.")
-                    
-                    # Crear tabla de valores inusuales
-                    outlier_data = []
-                    for feature in outlier_features:
-                        stats = unusual_values[feature]
-                        outlier_data.append({
-                            "Feature": feature,
-                            "Your Value": f"{stats['value']:.2f}",
-                            "Normal Range": f"{stats['min']:.2f} - {stats['max']:.2f}",
-                            "Dataset Mean": f"{stats['mean']:.2f}",
-                            "Dataset Median": f"{stats['median']:.2f}"
-                        })
-                    
-                    # Mostrar tabla de valores inusuales
-                    st.table(pd.DataFrame(outlier_data))
-                    
-                    st.info("""
-                    **What does this mean?**
-                    - Values outside the normal range seen during training may lead to less reliable predictions
-                    - The model has not been trained with examples similar to these unusual values
-                    - Consider using values closer to the typical range for more reliable results
-                    """)
-                else:
-                    st.success("✅ All input values are within the normal ranges seen during training.")
-            
-            except Exception as e:
-                st.error(f"Error checking outliers: {str(e)}")
+        
