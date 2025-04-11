@@ -1393,6 +1393,10 @@ elif page == "Train Model":
                         'original_columns': list(X.columns),
                         'encoding_method': encoding_option,
                         'scaling_method': scaling_option,
+                        # Añadir información sobre clase balancing y CV
+                        'class_balancing': 'handle_imbalance' in locals() and handle_imbalance,
+                        'cross_validation': 'use_cv' in locals() and use_cv,
+                        'cv_folds': n_folds if ('use_cv' in locals() and use_cv) else None,
                         'metrics': {
                             'accuracy': accuracy if problem_type == "Classification" else None,
                             'mse': mse if problem_type == "Regression" else None,
@@ -1492,6 +1496,21 @@ elif page == "Download Model":
         with col2:
             st.write("**Scaling Method:**", model_info['scaling_method'])
             st.write("**Encoding Method:**", model_info['encoding_method'])
+
+            # Mostrar información sobre balanceo de clases (SMOTE)
+            if 'class_balancing' in model_info:
+                if model_info['class_balancing']:
+                    st.write("**Class Balancing:** SMOTE applied ✅")
+                else:
+                    st.write("**Class Balancing:** None")
+            
+            # Mostrar información sobre validación cruzada
+            if 'cross_validation' in model_info:
+                if model_info['cross_validation']:
+                    st.write(f"**Cross Validation:** {model_info['cv_folds']} folds ✅")
+                else:
+                    st.write("**Cross Validation:** Not used")
+
         
         # Download button
         st.subheader("Download Model")
