@@ -95,8 +95,11 @@ FridAI is an interactive web app that democratizes machine learning by allowing 
 
 ### 3️⃣ Train Your Custom Model  
 - Select your target variable and predictive features with a few clicks
-- Choose the appropriate problem type (classification or regression)
+- Choose the appropriate problem type (classification or regression) 
+- Access an ML Algorithm Cheatsheet to guide your model selection
 - Configure preprocessing steps tailored to your data characteristics
+- **Automatically balance imbalanced datasets with SMOTE technology**
+- **Validate models with cross-validation for robust performance metrics**
 - Select and customize the perfect algorithm for your specific use case
 - Train your model with a single click and monitor the process
 
@@ -104,13 +107,25 @@ FridAI is an interactive web app that democratizes machine learning by allowing 
 - Review comprehensive performance metrics specific to your problem type
 - Visualize model behavior through intuitive plots and charts
 - Understand feature importance to gain business insights
+- **Export your trained model as a Python notebook with reproducible code**
 - Export your trained model for implementation in other systems
+- Download results and visualizations for reports and presentations
 
 ### 5️⃣ Generate Predictions  
 - Enter new data points through a user-friendly interface
 - Get instant predictions with confidence levels
+- **Check if your input data contains unusual values that could affect reliability**
+- **Use What-If Analysis to see how changing inputs affects predictions**
 - Visualize prediction probabilities across different classes
 - Make data-driven decisions based on model outputs
+- Process multiple predictions at once with batch prediction
+
+### 6️⃣ Educational Resources
+- **Access algorithm selection guides based on your problem type**
+- **Learn about model strengths and weaknesses through interactive tooltips**
+- **Understand statistical concepts with clear explanations**
+- Get recommendations for model improvements based on your data characteristics
+- Explore feature relationships to gain deeper insights
 
 ## 💻 Technical Details
 
