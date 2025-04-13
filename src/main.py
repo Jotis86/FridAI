@@ -1008,7 +1008,35 @@ elif page == "Train Model":
         # Target variable selection
         target = st.selectbox("Select Target Variable", data.columns)
         st.session_state.target = target
-        
+
+        # Check and handle missing values in target variable
+        if data[target].isna().any() or (data[target].dtype == 'object' and data[target].eq('').any()):
+            missing_count = data[target].isna().sum()
+            empty_string_count = 0 if data[target].dtype != 'object' else data[target].eq('').sum()
+            total_missing = missing_count + empty_string_count
+            
+            # Handle based on data type
+            if data[target].dtype in ['float64', 'int64'] or pd.api.types.is_numeric_dtype(data[target]):
+                # For numeric targets (regression), fill with mean
+                fill_value = data[target].mean()
+                fill_method = "mean"
+            else:
+                # For categorical targets (classification), fill with mode
+                fill_value = data[target].mode()[0]
+                fill_method = "most frequent value"
+            
+            # Fill the missing values
+            data[target] = data[target].fillna(fill_value)
+            
+            # Also replace empty strings if it's object type
+            if data[target].dtype == 'object':
+                data[target] = data[target].replace('', fill_value)
+            
+            # Show message
+            st.warning(f"⚠️ Your target variable '{target}' contained {total_missing} missing values ({missing_count} NaN and {empty_string_count} empty strings).")
+            st.info(f"Missing values have been automatically filled with the {fill_method} ({fill_value}).")
+            st.info("While this allows the model to train, consider if these filled values are appropriate for your use case.")
+
         # Problem type detection
         if data[target].dtype == 'object' or data[target].nunique() < 10:
             default_problem = "Classification"
