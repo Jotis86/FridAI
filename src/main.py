@@ -2112,18 +2112,18 @@ elif page == "Make Predictions":
                         ax.tick_params(axis='both', colors='#666666')
                         
                         # Add values on the bars
-                        for i, bar in enumerate(bars):
-                            value = probs_df['Probability'].iloc[i]
-                            text_color = 'white' if value > 0.4 else '#333333'
-                            ax.text(
-                                value + 0.01, i, 
-                                f"{value:.2%}", 
-                                va='center', 
-                                ha='left',
-                                fontsize=12,
-                                fontweight='bold',
-                                color=text_color
-                            )
+                        #for i, bar in enumerate(bars):
+                            #value = probs_df['Probability'].iloc[i]
+                            #text_color = 'white' if value > 0.4 else '#333333'
+                            #ax.text(
+                                #value + 0.01, i, 
+                                #f"{value:.2%}", 
+                                #va='center', 
+                                #ha='left',
+                                #fontsize=12,
+                                #fontweight='bold',
+                                #color=text_color
+                            #)
                         
                         # Remove y-label as it's redundant
                         ax.set_ylabel('')
