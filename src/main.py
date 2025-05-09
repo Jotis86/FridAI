@@ -724,54 +724,22 @@ if page == "Upload Data":
                                         (data[selected_col] > upper_bound)][selected_col]
                         
                         # Show statistics in a more attractive format
-                        st.markdown(f"""
-                        <style>
-                            .stat-box {{
-                                background-color: var(--background-color, #f0f2f6);
-                                border: 1px solid rgba(49, 51, 63, 0.2);
-                                border-radius: 8px;
-                                padding: 15px;
-                                margin-top: 10px;
-                                box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-                            }}
-                            .stat-box h4 {{
-                                color: var(--text-color, #31333F);
-                                margin-bottom: 10px;
-                            }}
-                            .stat-box p {{
-                                color: var(--text-color, #31333F);
-                            }}
-                            .stat-value {{
-                                font-size: 18px;
-                                font-weight: bold;
-                            }}
-                            .stat-unit {{
-                                font-size: 14px;
-                                opacity: 0.8;
-                            }}
-                            /* Estilos específicos para modo oscuro */
-                            @media (prefers-color-scheme: dark) {{
-                                .stat-box {{
-                                    background-color: #1E1E1E;
-                                    border-color: #444;
-                                }}
-                            }}
-                        </style>
+                        outlier_count = len(outlier_data)
+                        outlier_percentage = (outlier_count/len(data)*100)
+                        min_value = outlier_data.min()
+                        max_value = outlier_data.max()
 
-                        <div class="stat-box">
-                            <h4>Outlier Statistics for {selected_col}</h4>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr;">
-                                <div style="padding: 5px;">
-                                    <p style="font-weight: bold; margin-bottom: 5px;">Count</p>
-                                    <p class="stat-value">{len(outlier_data)} <span class="stat-unit">({len(outlier_data)/len(data)*100:.2f}%)</span></p>
-                                </div>
-                                <div style="padding: 5px;">
-                                    <p style="font-weight: bold; margin-bottom: 5px;">Range</p>
-                                    <p>Min: <b>{outlier_data.min():.4g}</b><br>Max: <b>{outlier_data.max():.4g}</b></p>
-                                </div>
-                            </div>
-                        </div>
-                        """, unsafe_allow_html=True)
+                        st.markdown("### Outlier Statistics")
+                        col1, col2 = st.columns(2)
+
+                        with col1:
+                            st.metric("Count", f"{outlier_count} ({outlier_percentage:.2f}%)")
+                            
+                        with col2:
+                            st.markdown(f"**Range:**  \nMin: {min_value:.4g}  \nMax: {max_value:.4g}")
+
+                        # Opcional: Añadir una línea separadora
+                        st.markdown("---")
                 else:
                     st.success("No outliers detected in the numeric columns!")
             else:
