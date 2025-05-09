@@ -420,7 +420,7 @@ except Exception as e:
 
 # Sidebar mejorado y personalizado
 st.sidebar.title(f"✨ {APP_NAME}")
-st.sidebar.markdown(f"<p style='font-size: 18px; font-style: italic; color: white;'>{APP_DESCRIPTION}</p>", unsafe_allow_html=True)
+st.sidebar.markdown(f"<p style='font-size: 18px; font-style: italic;'>{APP_DESCRIPTION}</p>", unsafe_allow_html=True)
 
 # App navigation
 page = st.sidebar.radio("", ["Upload Data", "Explore Data", "Train Model", "Download Model", "Make Predictions"])
