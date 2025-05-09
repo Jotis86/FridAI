@@ -725,16 +725,16 @@ if page == "Upload Data":
                         
                         # Show statistics in a more attractive format
                         st.markdown(f"""
-                        <div style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 10px;">
-                            <h4 style="color: #2c3e50; margin-bottom: 10px;">Outlier Statistics for {selected_col}</h4>
+                        <div style="background-color: rgba(128, 128, 128, 0.1); padding: 15px; border-radius: 8px; margin-top: 10px; border: 1px solid rgba(128, 128, 128, 0.2);">
+                            <h4 style="color: var(--text-color, #2c3e50); margin-bottom: 10px;">Outlier Statistics for {selected_col}</h4>
                             <div style="display: grid; grid-template-columns: 1fr 1fr;">
                                 <div style="padding: 5px;">
-                                    <p style="font-weight: bold; margin-bottom: 5px;">Count</p>
-                                    <p style="font-size: 18px;">{len(outlier_data)} <span style="font-size: 14px; color: #666;">({len(outlier_data)/len(data)*100:.2f}%)</span></p>
+                                    <p style="font-weight: bold; margin-bottom: 5px; color: var(--text-color, #333);">Count</p>
+                                    <p style="font-size: 18px; color: var(--text-color, #333);">{len(outlier_data)} <span style="font-size: 14px; color: rgba(128, 128, 128, 0.8);">({len(outlier_data)/len(data)*100:.2f}%)</span></p>
                                 </div>
                                 <div style="padding: 5px;">
-                                    <p style="font-weight: bold; margin-bottom: 5px;">Range</p>
-                                    <p style="font-size: 14px;">Min: <b>{outlier_data.min():.4g}</b><br>Max: <b>{outlier_data.max():.4g}</b></p>
+                                    <p style="font-weight: bold; margin-bottom: 5px; color: var(--text-color, #333);">Range</p>
+                                    <p style="font-size: 14px; color: var(--text-color, #333);">Min: <b>{outlier_data.min():.4g}</b><br>Max: <b>{outlier_data.max():.4g}</b></p>
                                 </div>
                             </div>
                         </div>
